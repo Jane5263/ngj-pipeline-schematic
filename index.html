@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#020449">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NGJ Perturbation Atlas · v2.4 Engine Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400&family=Montserrat:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #020449;
+    --navy-2: #0A0C5F;
+    --purple: #963789;
+    --deep-purple: #6832AC;
+    --coral: #EF4451;
+    --lavender: #AABBFF;
+    --light-bg: #EEF0FF;
+    --text-mid: #444466;
+    --warm-tan: #BF877B;
+    --therapeutic: #4AA96C;
+    --line: rgba(170, 187, 255, 0.18);
+    --glass: rgba(255, 255, 255, 0.035);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: radial-gradient(ellipse at top, #1A1156 0%, var(--navy) 60%, #010225 100%);
+    background-attachment: fixed;
+    color: var(--light-bg);
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 300; line-height: 1.55;
+    min-height: 100vh;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(circle at 15% 25%, rgba(150, 55, 137, 0.15) 0%, transparent 35%),
+      radial-gradient(circle at 85% 75%, rgba(239, 68, 81, 0.12) 0%, transparent 40%),
+      radial-gradient(circle at 50% 50%, rgba(104, 50, 172, 0.08) 0%, transparent 50%);
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 60px 40px 120px; position: relative; z-index: 1; }
+
+  /* ─── Cover ─── */
+  .cover { text-align: center; padding: 60px 0 80px; position: relative; }
+  .cover::before {
+    content: ""; position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+    width: 80px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--coral), transparent);
+  }
+  .eyebrow {
+    font-family: 'Montserrat', sans-serif; font-weight: 600;
+    font-size: 12px; letter-spacing: 0.4em; text-transform: uppercase;
+    color: var(--coral); margin-bottom: 24px;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif; font-weight: 400;
+    font-size: clamp(48px, 6vw, 84px); line-height: 1.05; margin: 0 0 24px;
+    color: #fff; letter-spacing: -0.01em;
+  }
+  h1 .italic {
+    font-style: italic;
+    background: linear-gradient(135deg, var(--lavender) 0%, var(--purple) 50%, var(--coral) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .subtitle {
+    font-family: 'Playfair Display', serif; font-style: italic; font-size: 22px;
+    color: var(--lavender); max-width: 740px; margin: 16px auto 0;
+  }
+  .meta {
+    margin-top: 36px; display: inline-flex; gap: 28px; flex-wrap: wrap; justify-content: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.15em;
+    color: var(--lavender); text-transform: uppercase; opacity: 0.75;
+  }
+  .meta span { display: inline-flex; align-items: center; gap: 8px; }
+  .meta .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--coral); }
+
+  /* ─── The big idea (cover narrative) ─── */
+  .premise {
+    max-width: 880px; margin: 60px auto 100px; padding: 36px 48px;
+    background: linear-gradient(165deg, rgba(150,55,137,.10) 0%, rgba(239,68,81,.06) 100%);
+    border: 1px solid rgba(239,68,81,.25); border-radius: 6px;
+    text-align: center;
+  }
+  .premise h3 {
+    font-family: 'Playfair Display', serif; font-style: italic; font-weight: 400;
+    font-size: 24px; color: #fff; margin: 0 0 16px;
+  }
+  .premise h3::before { content: none; }
+  .premise p {
+    font-size: 15.5px; color: var(--light-bg); line-height: 1.65;
+    max-width: 720px; margin: 0 auto;
+  }
+
+  /* ─── Sticky TOC ─── */
+  .toc {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(2, 4, 73, 0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 40px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    text-align: center; color: var(--lavender);
+  }
+  .toc a { color: var(--lavender); text-decoration: none; margin: 0 14px; opacity: 0.7; transition: color .2s; }
+  .toc a:hover { color: var(--coral); opacity: 1; }
+
+  /* ─── Stage card ─── */
+  .stage {
+    position: relative; margin-bottom: 80px; padding: 48px 56px;
+    background: linear-gradient(165deg, var(--glass) 0%, rgba(170, 187, 255, 0.02) 100%);
+    border-radius: 4px; border: 1px solid var(--line); backdrop-filter: blur(6px);
+  }
+  .stage::before {
+    content: ""; position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: linear-gradient(180deg, var(--purple) 0%, var(--coral) 100%);
+    border-radius: 4px 0 0 4px;
+  }
+  .stage-header {
+    display: flex; align-items: baseline; gap: 24px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .stage-num {
+    font-family: 'Playfair Display', serif; font-style: italic; font-weight: 400;
+    font-size: 96px; line-height: 0.9; color: var(--coral); opacity: 0.85; letter-spacing: -0.03em;
+  }
+  .stage-title {
+    font-family: 'Playfair Display', serif; font-weight: 400;
+    font-size: 36px; color: #fff; margin: 0; line-height: 1.15; flex: 1; min-width: 300px;
+    cursor: help; border-bottom: 1px dashed transparent; transition: border-color .2s;
+  }
+  .stage-title:hover { border-bottom-color: rgba(239,68,81,.4); }
+  .stage-title .accent { font-style: italic; color: var(--lavender); }
+  .stage-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--coral);
+    border: 1px solid var(--coral); border-radius: 100px; padding: 4px 12px; align-self: center;
+  }
+  .stage-question {
+    font-family: 'Playfair Display', serif; font-style: italic; font-size: 22px;
+    color: var(--coral); margin: 8px 0 14px; font-weight: 400;
+  }
+  .stage-lede {
+    font-size: 15.5px; color: var(--lavender); margin: 0 0 36px;
+    max-width: 880px; line-height: 1.65; font-weight: 300;
+  }
+  h3 {
+    font-family: 'Playfair Display', serif; font-weight: 400; font-size: 22px;
+    color: #fff; margin: 40px 0 16px;
+  }
+  h3::before { content: "§ "; color: var(--coral); font-style: italic; }
+
+  /* ─── SVG diagram frames ─── */
+  .figure {
+    margin: 24px 0 32px; padding: 28px 24px;
+    background: linear-gradient(165deg, rgba(2,4,73,0.6) 0%, rgba(10,12,95,0.4) 100%);
+    border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden;
+  }
+  .figure svg { width: 100%; height: auto; display: block; }
+  .fig-cap {
+    margin-top: 14px; font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: 13px; color: var(--lavender); text-align: center; opacity: 0.8;
+  }
+
+  /* ─── Tables ─── */
+  .scripts {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    margin: 16px 0 24px; font-size: 13px;
+    background: rgba(2,4,73,0.35);
+    border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  }
+  .scripts th {
+    text-align: left; font-family: 'Montserrat', sans-serif; font-weight: 600;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--coral); padding: 14px 20px;
+    background: rgba(150, 55, 137, 0.10);
+    border-bottom: 1px solid rgba(239, 68, 81, 0.25);
+  }
+  .scripts td {
+    padding: 14px 20px; vertical-align: top; border-bottom: 1px solid var(--line);
+    color: var(--light-bg); font-weight: 300;
+  }
+  .scripts tr:last-child td { border-bottom: none; }
+  .scripts tr:hover td { background: rgba(170, 187, 255, 0.04); }
+  .scripts td:first-child { width: 36%; }
+  .script-name {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--lavender); font-weight: 400;
+    cursor: help; padding: 2px 6px 2px 0;
+    border-bottom: 1px dashed rgba(170, 187, 255, 0.25);
+    transition: color .2s, border-color .2s;
+  }
+  .script-name:hover { color: var(--coral); border-bottom-color: var(--coral); }
+  .role-text code, td code, p code, li code {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.92em;
+    color: var(--coral); background: rgba(239,68,81,.08);
+    padding: 1px 6px; border-radius: 3px;
+  }
+
+  /* ─── Callouts ─── */
+  .callout {
+    margin: 28px 0; padding: 20px 28px;
+    border-left: 3px solid var(--coral); background: rgba(239,68,81,.06);
+    border-radius: 0 4px 4px 0;
+  }
+  .callout.warn { border-left-color: var(--warm-tan); background: rgba(191,135,123,.06); }
+  .callout .label {
+    font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 10px;
+    letter-spacing: 0.25em; text-transform: uppercase; color: var(--coral);
+    display: block; margin-bottom: 6px;
+  }
+  .callout.warn .label { color: var(--warm-tan); }
+  .callout p { margin: 4px 0; font-size: 14px; }
+
+  /* ─── Scoring vocabulary cards ─── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+    gap: 24px;
+    margin: 24px 0 40px;
+  }
+  .metric-card {
+    position: relative;
+    padding: 28px 28px 28px 38px;
+    background: linear-gradient(165deg, rgba(2,4,73,0.5) 0%, rgba(10,12,95,0.3) 100%);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .metric-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 5px; height: 100%;
+    background: var(--coral);
+  }
+  .metric-card.efficacy::before { background: var(--therapeutic); }
+  .metric-card.substrate::before { background: var(--lavender); }
+  .metric-card.safety::before { background: var(--warm-tan); }
+  .metric-card.validation::before { background: var(--purple); }
+  .metric-card h4 {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 26px;
+    color: #fff;
+    margin: 0 0 4px;
+    line-height: 1.1;
+  }
+  .metric-card .metric-cat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 18px;
+  }
+  .metric-card.efficacy .metric-cat { color: var(--therapeutic); }
+  .metric-card.substrate .metric-cat { color: var(--lavender); }
+  .metric-card.safety .metric-cat { color: var(--warm-tan); }
+  .metric-card.validation .metric-cat { color: var(--purple); }
+  .metric-card .row {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 14px;
+    margin-bottom: 12px;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .metric-card .row .lbl {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--coral);
+    padding-top: 4px;
+  }
+  .metric-card.efficacy .row .lbl { color: var(--therapeutic); }
+  .metric-card.substrate .row .lbl { color: var(--lavender); }
+  .metric-card.safety .row .lbl { color: var(--warm-tan); }
+  .metric-card.validation .row .lbl { color: var(--purple); }
+  .metric-card .row .val { color: var(--light-bg); font-weight: 300; }
+  .metric-card .benchmark {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(239, 68, 81, 0.08);
+    border-left: 2px solid var(--coral);
+    border-radius: 0 4px 4px 0;
+    font-size: 12px;
+    color: var(--lavender);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.7;
+  }
+  .metric-card.efficacy .benchmark { background: rgba(74, 169, 108, 0.10); border-left-color: var(--therapeutic); }
+  .metric-card.substrate .benchmark { background: rgba(170, 187, 255, 0.08); border-left-color: var(--lavender); }
+  .metric-card.safety .benchmark { background: rgba(191, 135, 123, 0.10); border-left-color: var(--warm-tan); }
+  .metric-card.validation .benchmark { background: rgba(150, 55, 137, 0.12); border-left-color: var(--purple); }
+  .metric-card .benchmark strong { color: #fff; font-weight: 500; }
+
+  .vocab-section-title {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 19px;
+    color: var(--coral);
+    margin: 32px 0 4px;
+    letter-spacing: 0.02em;
+  }
+  .vocab-section-title::before { content: none; }
+  .vocab-section-sub {
+    font-size: 13px; color: var(--lavender);
+    opacity: 0.75; margin: 0 0 14px;
+    font-weight: 300;
+  }
+
+  /* ─── Δ Delta cards ─── */
+  .delta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px; margin: 32px 0;
+  }
+  .delta {
+    padding: 28px 24px;
+    background: linear-gradient(165deg, rgba(150,55,137,.18) 0%, rgba(239,68,81,.10) 100%);
+    border: 1px solid rgba(239,68,81,.25); border-radius: 6px;
+    position: relative; overflow: hidden; cursor: help;
+  }
+  .delta::before {
+    content: "Δ"; position: absolute; top: -20px; right: -10px;
+    font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: 120px; color: rgba(239,68,81,.10); line-height: 1;
+  }
+  .delta h4 {
+    font-family: 'Playfair Display', serif; font-weight: 400; font-size: 20px;
+    color: #fff; margin: 0 0 6px; position: relative;
+  }
+  .delta .adr {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.15em; color: var(--coral); text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .delta p { font-size: 13px; color: var(--lavender); margin: 0; position: relative; }
+
+  .new-badge {
+    display: inline-block; font-family: 'Montserrat', sans-serif; font-weight: 700;
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    background: var(--coral); color: #fff; padding: 2px 8px;
+    border-radius: 100px; margin-left: 8px; vertical-align: middle;
+  }
+
+  .ornament {
+    text-align: center; margin: 64px 0 32px;
+    color: var(--purple); font-family: 'Playfair Display', serif;
+    font-size: 24px; letter-spacing: 1em;
+  }
+
+  footer {
+    margin-top: 96px; padding-top: 40px;
+    border-top: 1px solid var(--line); text-align: center;
+    font-family: 'Montserrat', sans-serif; font-size: 11px;
+    color: var(--lavender); opacity: 0.6; letter-spacing: 0.1em;
+  }
+  footer .colophon {
+    font-family: 'Playfair Display', serif; font-style: italic; font-size: 14px;
+    color: var(--lavender); margin-bottom: 12px; opacity: 1;
+  }
+
+  /* ─── SVG default styling ─── */
+  svg text { font-family: 'Montserrat', sans-serif; fill: var(--light-bg); }
+  svg .arrow { stroke: var(--purple); fill: none; stroke-width: 1.5; }
+  svg .arrow-coral { stroke: var(--coral); }
+  svg .glow { filter: drop-shadow(0 0 14px rgba(239,68,81,0.35)); }
+  svg .hoverable { cursor: help; transition: transform .2s; }
+  svg .hoverable:hover { filter: brightness(1.25) drop-shadow(0 0 14px rgba(239,68,81,0.45)); }
+  .lbl-title { font-weight: 600; }
+  .lbl-sub { font-weight: 300; }
+  .lbl-tag { font-weight: 700; letter-spacing: 2px; }
+
+  /* ─── Floating tooltip ─── */
+  #tooltip {
+    position: fixed; pointer-events: none; opacity: 0;
+    background: linear-gradient(165deg, #0A0C5F 0%, #020449 100%);
+    color: var(--light-bg);
+    border: 1px solid var(--coral); border-radius: 6px;
+    padding: 14px 18px; max-width: 380px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12.5px; line-height: 1.55; font-weight: 300;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 20px rgba(239,68,81,0.25);
+    z-index: 9999; transition: opacity .15s;
+  }
+  #tooltip.show { opacity: 1; }
+  #tooltip .tip-title {
+    font-family: 'Playfair Display', serif; font-weight: 400;
+    color: var(--coral); font-size: 14px; margin-bottom: 6px; font-style: italic;
+  }
+  #tooltip .tip-meta {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--lavender); letter-spacing: 0.1em;
+    text-transform: uppercase; opacity: 0.7; margin-top: 8px;
+    padding-top: 8px; border-top: 1px solid rgba(170,187,255,0.15);
+  }
+
+  /* ─── SVG scroll wrapper (injected by JS on touch devices) ─── */
+  .svg-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -16px;
+    padding: 0 16px 6px;
+  }
+  .svg-scroll::-webkit-scrollbar { height: 6px; }
+  .svg-scroll::-webkit-scrollbar-thumb {
+    background: rgba(170,187,255,0.25); border-radius: 3px;
+  }
+
+  /* ════════════════════════════════════════════════════════
+     RESPONSIVE — tablet (≤ 900px)
+     ════════════════════════════════════════════════════════ */
+  @media (max-width: 900px) {
+    .wrap { padding: 40px 22px 80px; }
+    .stage { padding: 36px 28px; margin-bottom: 60px; }
+    .stage-num { font-size: 72px; }
+    .stage-title { font-size: 28px; }
+    h1 { font-size: clamp(40px, 8vw, 60px); }
+    .subtitle { font-size: 19px; }
+    .premise { padding: 28px 28px; margin: 40px auto 70px; }
+    .premise p { font-size: 14.5px; }
+    .stage-question { font-size: 18px; }
+    .stage-lede { font-size: 14.5px; }
+    .delta-grid { grid-template-columns: 1fr 1fr; }
+    .metric-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ════════════════════════════════════════════════════════
+     RESPONSIVE — phone (≤ 640px)
+     ════════════════════════════════════════════════════════ */
+  @media (max-width: 640px) {
+    body { line-height: 1.55; }
+
+    /* Containers */
+    .wrap { padding: 28px 16px 60px; }
+
+    /* TOC becomes horizontally scrollable strip */
+    .toc {
+      padding: 10px 16px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      text-align: left;
+      font-size: 9.5px;
+      letter-spacing: 0.1em;
+    }
+    .toc::-webkit-scrollbar { display: none; }
+    .toc a { margin: 0 10px; }
+
+    /* Cover */
+    .cover { padding: 20px 0 40px; }
+    .cover::before { width: 60px; }
+    h1 { font-size: clamp(34px, 9vw, 50px); line-height: 1.08; margin: 0 0 16px; }
+    .subtitle { font-size: 16px; max-width: 100%; }
+    .meta {
+      margin-top: 24px; gap: 10px;
+      flex-direction: column; align-items: center;
+      font-size: 10px; letter-spacing: 0.12em;
+    }
+
+    /* Premise box */
+    .premise {
+      padding: 22px 20px; margin: 24px auto 50px;
+      border-radius: 6px;
+    }
+    .premise h3 { font-size: 19px; margin-bottom: 12px; }
+    .premise p { font-size: 14px; line-height: 1.6; }
+
+    /* Stage card — tighter, full-bleed feel */
+    .stage {
+      padding: 28px 20px;
+      margin-bottom: 44px;
+      border-radius: 4px;
+    }
+    .stage::before { width: 3px; }
+    .stage-header { gap: 14px; }
+    .stage-num {
+      font-size: 52px; line-height: 0.95;
+    }
+    .stage-title {
+      font-size: 22px; min-width: auto;
+      width: 100%;
+    }
+    .stage-tag {
+      font-size: 8.5px; padding: 3px 9px;
+      letter-spacing: 0.16em;
+    }
+    .stage-question {
+      font-size: 16px; margin: 6px 0 12px; line-height: 1.4;
+    }
+    .stage-lede {
+      font-size: 14px; margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    /* Section headings */
+    h3 { font-size: 18px; margin: 28px 0 12px; }
+    .vocab-section-title { font-size: 17px; margin-top: 24px; }
+    .vocab-section-sub { font-size: 12px; }
+
+    /* Figures: keep SVGs at readable size; allow horizontal scroll */
+    .figure {
+      margin: 18px -20px 24px;
+      padding: 18px 0 12px;
+      border-radius: 0;
+      border-left: none; border-right: none;
+    }
+    .figure svg { min-width: 720px; }    /* keep visual integrity */
+    .fig-cap {
+      padding: 0 20px; margin-top: 12px;
+      font-size: 12px; line-height: 1.55;
+    }
+
+    /* Tables collapse to stacked cards */
+    .scripts {
+      display: block; border-radius: 6px;
+      background: rgba(2,4,73,0.4);
+      border: 1px solid var(--line);
+    }
+    .scripts thead { display: none; }
+    .scripts tbody, .scripts tr, .scripts td { display: block; width: 100%; }
+    .scripts tr {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .scripts tr:last-child { border-bottom: none; }
+    .scripts tr:hover td { background: transparent; }
+    .scripts td {
+      padding: 0; border: none !important;
+      width: 100% !important;
+    }
+    .scripts td:first-child {
+      margin-bottom: 6px;
+    }
+    .script-name {
+      font-size: 11.5px;
+      display: inline-block;
+      word-break: break-all;
+    }
+    .role-text, .scripts td:last-child {
+      font-size: 13px; line-height: 1.55;
+      color: var(--light-bg);
+    }
+
+    /* Callouts */
+    .callout {
+      padding: 16px 18px;
+      margin: 22px 0;
+    }
+    .callout p { font-size: 13px; }
+    .callout .label { font-size: 9px; letter-spacing: 0.2em; }
+
+    /* Delta cards */
+    .delta-grid { grid-template-columns: 1fr; gap: 16px; }
+    .delta { padding: 22px 20px; }
+    .delta h4 { font-size: 18px; }
+    .delta p { font-size: 13px; }
+    .delta::before { font-size: 90px; top: -16px; right: -8px; }
+
+    /* Scoring vocabulary cards */
+    .metric-card { padding: 22px 20px 22px 28px; }
+    .metric-card::before { width: 4px; }
+    .metric-card h4 { font-size: 22px; }
+    .metric-card .metric-cat { font-size: 9.5px; margin-bottom: 14px; }
+    .metric-card .row {
+      grid-template-columns: 52px 1fr;
+      gap: 10px; font-size: 13px;
+    }
+    .metric-card .row .lbl { font-size: 9px; letter-spacing: 0.18em; }
+    .metric-card .benchmark {
+      font-size: 11.5px; padding: 10px 12px;
+    }
+
+    /* Footer */
+    footer { margin-top: 60px; padding-top: 28px; font-size: 10px; }
+    footer .colophon { font-size: 13px; }
+
+    /* Ornament */
+    .ornament { margin: 40px 0 20px; font-size: 18px; letter-spacing: 0.7em; }
+
+    /* Tooltip becomes a bottom sheet on touch */
+    #tooltip.sheet {
+      left: 12px !important; right: 12px !important;
+      top: auto !important;
+      bottom: 12px;
+      max-width: none; width: auto;
+      padding: 18px 22px;
+      transform: none;
+      max-height: 60vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #tooltip .tip-close {
+      margin-top: 14px; padding-top: 12px;
+      border-top: 1px solid rgba(170,187,255,0.2);
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--coral);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════
+     RESPONSIVE — very narrow (≤ 380px, e.g. iPhone SE)
+     ════════════════════════════════════════════════════════ */
+  @media (max-width: 380px) {
+    .wrap { padding: 24px 12px 50px; }
+    .stage { padding: 24px 16px; }
+    .stage-num { font-size: 44px; }
+    .stage-title { font-size: 20px; }
+    h1 { font-size: clamp(30px, 9.5vw, 44px); }
+    .metric-card { padding: 20px 16px 20px 24px; }
+    .metric-card .row { grid-template-columns: 48px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="toc">
+  <a href="#stage0">0 · Foundation</a>
+  <a href="#stage1">1 · Maps of biology</a>
+  <a href="#stage2">2 · Gene wiring</a>
+  <a href="#stage3">3 · Drop in a drug</a>
+  <a href="#stage4">4 · Does it help · Will it hurt</a>
+  <a href="#vocab">4½ · Scoring vocabulary</a>
+  <a href="#stage5">5 · The gate</a>
+  <a href="#stage6">6 · Orchestration</a>
+  <a href="#flow">Whole flow</a>
+  <a href="#deltas">Δ v2.4</a>
+</nav>
+
+<div id="tooltip"></div>
+
+<div class="wrap">
+
+  <!-- ─── Cover ─── -->
+  <section class="cover">
+    <div class="eyebrow">NextGen Jane · Perturbation Atlas</div>
+    <h1>The <span class="italic">v2.4</span> Engine<br>Pipeline Schematic</h1>
+    <p class="subtitle">A guided tour of how a candidate drug becomes a ranked, safety-checked therapeutic prediction.</p>
+    <div class="meta">
+      <span><i class="dot"></i> Version 2.4 · 2026-04-15</span>
+      <span><i class="dot"></i> 1,783 drugs · 8 organs · 3 diseases</span>
+      <span><i class="dot"></i> Hover or tap · for detail</span>
+    </div>
+  </section>
+
+  <!-- The premise — set up the story -->
+  <section class="premise">
+    <h3>Overview</h3>
+    <p>The engine predicts the effect of any candidate compound on diseased tissue and on eight major organs. A drug is mapped to its known protein targets; that perturbation is propagated through an 18,727-gene regulatory network calibrated against 1,116 menstrual reference samples; the result is a per-gene prediction of expression change for each tissue of interest. Two questions are scored against every prediction: <em>does the compound move diseased tissue toward a healthy molecular state</em>, and <em>does it perturb any organ toward toxicity?</em> Every engine release is gated against four real-world benchmarks — measured drug effects in patient cohorts and ex-vivo studies — before any candidate score is published.</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STAGE 0 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="stage0">
+    <header class="stage-header">
+      <div class="stage-num">00</div>
+      <h2 class="stage-title" data-tip-title="Stage 0 · Foundation" data-tip="The bedrock layer. Every parameter, every constant, every drug-to-target map lives in one place so the rest of the codebase can stay clean and consistent. If you ever wonder 'where is X defined?' — it's here.">Foundation <span class="accent">— the rulebook everything else reads from</span></h2>
+      <span class="stage-tag">Layer · Engine</span>
+    </header>
+    <p class="stage-question">Before anything runs · what does the engine need to know about itself?</p>
+    <p class="stage-lede">Five small Python files set the ground rules: what counts as a drug, what counts as a disease, what counts as toxic. Every downstream script imports from them, which is how we make sure 1,783 drug calculations stay consistent and reproducible.</p>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 340" xmlns="http://www.w3.org/2000/svg" aria-label="Foundation modules">
+
+        <!-- Central rulebook -->
+        <g class="hoverable" data-tip-title="The rulebook · engine/config.py" data-tip="Every parameter, drug definition, disease cohort, pathway list, and toxicity mechanism lives in this one file. Why centralize? So the same drug never gets defined three different ways across the codebase. Includes: SimulationParams (the math knobs), DRUG_TARGET_MAP_EXTENDED (which proteins each drug binds), DISEASE_COHORTS (who counts as a patient), PATHWAY_MODULES (50 biological pathways), TOX_MECHANISM_SPECS (24 ways a drug can damage an organ).">
+          <rect x="430" y="105" width="340" height="120" rx="10" fill="rgba(239,68,81,0.18)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="600" y="135" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">THE RULEBOOK</text>
+          <text x="600" y="162" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="20" fill="#fff">Every constant, every</text>
+          <text x="600" y="186" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="20" fill="#fff">drug, every disease</text>
+          <text x="600" y="210" text-anchor="middle" font-size="11" fill="#AABBFF">so nothing is defined twice</text>
+        </g>
+
+        <!-- Top-left: Librarian -->
+        <g class="hoverable" data-tip-title="The librarian · engine/io.py" data-tip="The gene network is a giant file (3.8 GB). Loading it from scratch takes over two minutes; loading it from a pre-baked cache takes 4.5 seconds. This module knows which format to grab and where it lives, so every script gets the same data without waiting.">
+          <rect x="60" y="50" width="240" height="90" rx="6" fill="rgba(150,55,137,0.20)" stroke="#963789" stroke-width="1.5"/>
+          <text x="180" y="78" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">THE LIBRARIAN</text>
+          <text x="180" y="100" text-anchor="middle" font-size="13" fill="#fff">Loads the gene network</text>
+          <text x="180" y="120" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">4.5 seconds, not 2 minutes</text>
+        </g>
+
+        <!-- Top-right: Math engine -->
+        <g class="hoverable" data-tip-title="The math engine · engine/solver.py" data-tip="To predict what a drug does, we have to solve a large linear-algebra equation involving the entire gene network. This module does it once per organ, then re-uses the solution for every drug in the library — which is how a screen of 1,783 drugs finishes in 37 minutes instead of 71 hours.">
+          <rect x="900" y="50" width="240" height="90" rx="6" fill="rgba(150,55,137,0.20)" stroke="#963789" stroke-width="1.5"/>
+          <text x="1020" y="78" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">THE MATH ENGINE</text>
+          <text x="1020" y="100" text-anchor="middle" font-size="13" fill="#fff">Solves 1,783 drugs at once</text>
+          <text x="1020" y="120" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">~37 minutes, all of them</text>
+        </g>
+
+        <!-- Bottom-left: Brand kit -->
+        <g class="hoverable" data-tip-title="The art director · engine/ngj_style.py" data-tip="When the engine produces a chart, this module makes it look like everything else NGJ ships: Navy backgrounds, Coral accents, Playfair for titles, Montserrat for body. So every figure in every deck reads as part of the same family.">
+          <rect x="60" y="190" width="240" height="90" rx="6" fill="rgba(150,55,137,0.20)" stroke="#963789" stroke-width="1.5"/>
+          <text x="180" y="218" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">THE ART DIRECTOR</text>
+          <text x="180" y="240" text-anchor="middle" font-size="13" fill="#fff">Colors &amp; fonts for figures</text>
+          <text x="180" y="260" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">brand-consistent charts</text>
+        </g>
+
+        <!-- Bottom-right: Stats -->
+        <g class="hoverable" data-tip-title="The statistician · engine/stats_utils.py" data-tip="Whenever the engine reports a number — an AUC, a difference between groups, a correlation — this module attaches the uncertainty: confidence intervals, p-values, effect sizes. So 'the drug works' always comes with 'and here's how sure we are'.">
+          <rect x="900" y="190" width="240" height="90" rx="6" fill="rgba(150,55,137,0.20)" stroke="#963789" stroke-width="1.5"/>
+          <text x="1020" y="218" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">THE STATISTICIAN</text>
+          <text x="1020" y="240" text-anchor="middle" font-size="13" fill="#fff">Confidence intervals</text>
+          <text x="1020" y="260" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">significance tests</text>
+        </g>
+
+        <!-- Connecting lines -->
+        <path class="arrow" d="M 300 95 Q 380 110 430 140"/>
+        <path class="arrow" d="M 300 235 Q 380 220 430 195"/>
+        <path class="arrow arrow-coral" d="M 900 95 Q 820 110 770 140"/>
+        <path class="arrow" d="M 900 235 Q 820 220 770 195"/>
+      </svg>
+      <div class="fig-cap">Fig 0 · One rulebook in the middle. Four helpers around it. Everything else in the engine imports from here.</div>
+    </div>
+
+    <h3>Cache &amp; gene-space scripts</h3>
+    <table class="scripts">
+      <thead><tr><th>Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="cache_edge_arrays.py" data-tip="Run this once after every gene-network rebuild. It takes the slow 130-second pickle file and writes a fast 4.5-second NPZ. Every other script that opens the network reads from the NPZ.">scripts/cache_edge_arrays.py</span></td><td class="role-text">Speeds up gene-network loading from two minutes to five seconds.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="compute_unified_gene_space.py" data-tip="Decides which genes are 'real' in which tissues. A gene that's barely expressed in liver shouldn't be counted in liver analyses. This script applies a consistent expression threshold (mean log2 ≥ 1.5) so every tissue starts from the same playing field.">scripts/compute_unified_gene_space.py</span></td><td class="role-text">Defines which genes count as 'expressed' in each tissue (so tissues are compared fairly).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STAGE 1 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="stage1">
+    <header class="stage-header">
+      <div class="stage-num">01</div>
+      <h2 class="stage-title" data-tip-title="Stage 1 · Reference maps" data-tip="Before we can ask whether a drug improves a patient, we need to know what 'healthy' and 'sick' look like at the molecular level. This stage builds those reference maps — for the universal hub (menstrual biology), for each disease tissue, for each healthy comparator, for eight major organs at rest, and for 489 immune-cell fingerprints.">Maps of biology <span class="accent">— so we know what healthy and sick actually look like</span></h2>
+      <span class="stage-tag">Layer · Reference</span>
+    </header>
+    <p class="stage-question">Before scoring drugs · what does healthy biology actually look like?</p>
+    <p class="stage-lede">You can't grade a drug's effect without a yardstick. This stage builds the yardsticks. The middle yardstick — the menstrual reference — is the gold standard, because we have 1,116 women's samples across the full inflammation range. Every other reference (disease tissue, healthy tissue, organ, immune fingerprint) is calibrated against it.</p>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 580" xmlns="http://www.w3.org/2000/svg" aria-label="Hub and spoke references">
+        <defs>
+          <radialGradient id="hubgrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#EF4451" stop-opacity="0.9"/>
+            <stop offset="60%" stop-color="#963789" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#020449" stop-opacity="0.2"/>
+          </radialGradient>
+        </defs>
+
+        <text x="600" y="30" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="16" fill="#AABBFF" opacity="0.8">Four families of reference, all calibrated against one hub</text>
+
+        <!-- Spoke lines -->
+        <line x1="600" y1="290" x2="225" y2="140" stroke="#963789" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.55"/>
+        <line x1="600" y1="290" x2="975" y2="140" stroke="#963789" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.55"/>
+        <line x1="600" y1="290" x2="225" y2="450" stroke="#963789" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.55"/>
+        <line x1="600" y1="290" x2="975" y2="450" stroke="#963789" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.55"/>
+
+        <!-- Rings -->
+        <circle cx="600" cy="290" r="170" fill="none" stroke="#AABBFF" stroke-opacity="0.10" stroke-width="0.5"/>
+        <circle cx="600" cy="290" r="200" fill="none" stroke="#AABBFF" stroke-opacity="0.08" stroke-width="0.5"/>
+        <circle cx="600" cy="290" r="230" fill="none" stroke="#AABBFF" stroke-opacity="0.05" stroke-width="0.5"/>
+
+        <!-- HUB -->
+        <g class="hoverable" data-tip-title="The universal hub · menstrual biology" data-tip="Why menstrual? NGJ collected 1,116 menstrual samples spanning the full inflammation range (from very mild to very inflamed). That's the largest, deepest single-tissue dataset NGJ owns, and it covers a natural disease-like spectrum. So it works as a 'gold standard' inflammation map that every other tissue gets compared against. Drug effects are graded against where they push a patient ON this hub.">
+          <circle cx="600" cy="290" r="145" fill="url(#hubgrad)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="600" y="262" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">UNIVERSAL HUB</text>
+          <text x="600" y="295" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="22" fill="#fff">Menstrual biology</text>
+          <text x="600" y="320" text-anchor="middle" font-size="12" fill="#fff">1,116 women</text>
+          <text x="600" y="340" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">spanning the full</text>
+          <text x="600" y="356" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">inflammation range</text>
+        </g>
+
+        <!-- Spoke 1 -->
+        <g class="hoverable" data-tip-title="What sick tissue looks like" data-tip="Built from real patient biopsies. HS skin (from people with hidradenitis suppurativa), psoriatic skin (from the DISCOVER trial), lupus blood (924 SLE patients), endometriosis menstrual samples. Each one tells us: when this disease is active, here's the molecular signature.">
+          <rect x="80" y="80" width="290" height="125" rx="8" fill="rgba(150,55,137,0.20)" stroke="#963789" stroke-width="2"/>
+          <text x="225" y="110" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">SICK TISSUE</text>
+          <text x="225" y="138" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="17" fill="#fff">What disease looks like</text>
+          <text x="225" y="162" text-anchor="middle" font-size="11" fill="#AABBFF">HS skin · psoriasis · lupus blood</text>
+          <text x="225" y="180" text-anchor="middle" font-size="11" fill="#AABBFF">endometriosis · Crohn's · UC</text>
+          <text x="225" y="198" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">from real patient biopsies</text>
+        </g>
+
+        <!-- Spoke 2 -->
+        <g class="hoverable" data-tip-title="What healthy tissue looks like" data-tip="External healthy controls for each disease. 108 healthy skin samples, healthy blood, healthy menstrual endometrium, healthy colon. The drug-scoring algorithm doesn't just ask 'where is the patient', it asks 'how far is the patient from a healthy person of the same tissue', and these are how we measure that gap.">
+          <rect x="830" y="80" width="290" height="125" rx="8" fill="rgba(74,169,108,0.18)" stroke="#4AA96C" stroke-width="2"/>
+          <text x="975" y="110" text-anchor="middle" font-size="11" class="lbl-tag" fill="#4AA96C">HEALTHY TISSUE</text>
+          <text x="975" y="138" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="17" fill="#fff">What health looks like</text>
+          <text x="975" y="162" text-anchor="middle" font-size="11" fill="#AABBFF">skin · blood · gut · endometrium</text>
+          <text x="975" y="180" text-anchor="middle" font-size="11" fill="#AABBFF">from external healthy controls</text>
+          <text x="975" y="198" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">the comparator for every disease</text>
+        </g>
+
+        <!-- Spoke 3 -->
+        <g class="hoverable" data-tip-title="What eight organs look like at rest" data-tip="From GTEx — a public dataset of normal human tissue from over 900 donors. We use it to build resting-state maps of liver, heart left ventricle, kidney cortex, colon, tibial nerve, frontal cortex, uterus, and ovary. A drug that perturbs one of these organs (e.g., a hepatotoxin) will look qualitatively different from a drug that doesn't.">
+          <rect x="80" y="385" width="290" height="135" rx="8" fill="rgba(191,135,123,0.20)" stroke="#BF877B" stroke-width="2"/>
+          <text x="225" y="415" text-anchor="middle" font-size="11" class="lbl-tag" fill="#BF877B">ORGAN BASELINES</text>
+          <text x="225" y="442" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="17" fill="#fff">8 organs at rest</text>
+          <text x="225" y="466" text-anchor="middle" font-size="11" fill="#AABBFF">liver · heart · kidney · gut</text>
+          <text x="225" y="484" text-anchor="middle" font-size="11" fill="#AABBFF">nerve · brain · uterus · ovary</text>
+          <text x="225" y="504" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">used to detect drug toxicity</text>
+        </g>
+
+        <!-- Spoke 4 -->
+        <g class="hoverable" data-tip-title="Immune-cell fingerprints (489 switches)" data-tip="Each 'switch' is a small gene set that lights up when a particular immune cell type is active. With 489 of them, the engine can read a sample and say: 'this patient has expanded T cells, depleted B cells, and active myeloid inflammation.' That cell-composition view is critical for understanding what a drug is actually doing — is it killing the inflamed cells, or just dampening them?">
+          <rect x="830" y="385" width="290" height="135" rx="8" fill="rgba(104,50,172,0.22)" stroke="#6832AC" stroke-width="2"/>
+          <text x="975" y="415" text-anchor="middle" font-size="11" class="lbl-tag" fill="#AABBFF">IMMUNE FINGERPRINTS</text>
+          <text x="975" y="442" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="17" fill="#fff">489 cell-type signatures</text>
+          <text x="975" y="466" text-anchor="middle" font-size="11" fill="#AABBFF">lymphoid · myeloid · stroma</text>
+          <text x="975" y="484" text-anchor="middle" font-size="11" fill="#AABBFF">progenitor · epithelial · endothelial</text>
+          <text x="975" y="504" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">tells us which cells are present</text>
+        </g>
+
+      </svg>
+      <div class="fig-cap">Fig 1 · The menstrual hub at the center. Four reference families radiate outward. Drugs are scored against the hub; tissues and organs are calibrated to it.</div>
+    </div>
+
+    <h3>Tissue &amp; organ reference builders</h3>
+    <table class="scripts">
+      <thead><tr><th>Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="build_menstrual_trajectory_expanded.py" data-tip="Re-builds the menstrual co-expression trajectory at 14,500 genes (up from the original 640). Run after the gene network expands.">scripts/build_menstrual_trajectory_expanded.py</span></td><td class="role-text">Rebuilds the menstrual reference map across 14,500 genes.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_official_menstrual_reference.py" data-tip="The official 1,227-sample menstrual reference for v2.5+ (ADR-026, locked 2026-05-13). Use this as the canonical hub for all new analyses.">scripts/build_official_menstrual_reference.py</span></td><td class="role-text">Builds the official 1,227-sample menstrual hub (v2.5+ standard).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_tissue_reference.py" data-tip="The general-purpose reference builder. Takes a tissue, a disease, and a sample list, produces a reference map with 31 sliding inflammation windows. Used to build every v3 disease reference.">scripts/build_tissue_reference.py</span></td><td class="role-text">General-purpose builder — turn any sample collection into a reference map.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="rebuild_all_references_v3.py" data-tip="Batch driver that rebuilds all four disease tissue references (HS, lupus blood, lupus kidney, stratified menstrual) at the unified 14,500-gene space in one orchestrated run.">scripts/rebuild_all_references_v3.py</span></td><td class="role-text">Rebuilds all four disease tissue references in one go.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_discover_reference.py" data-tip="Builds the psoriasis reference from the DISCOVER clinical trial — 139 baseline patient biopsies, 14,999 genes. Substrate for the AUC=0.749 / 0.750 dual-metric benchmark.">scripts/build_discover_reference.py</span></td><td class="role-text">Psoriasis reference from the DISCOVER clinical trial.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_healthy_references.py" data-tip="Extracts standalone healthy-tissue references (skin / blood / menstrual / colon, 15K genes, 31 windows) so the engine can compute disease-minus-healthy deviation.">scripts/build_healthy_references.py</span></td><td class="role-text">Builds the healthy comparators for skin, blood, gut, endometrium.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_colon_references.py" data-tip="Crohn's + ulcerative colitis colon references. Batch-corrected across three datasets so they can be combined.">scripts/build_colon_references.py</span></td><td class="role-text">Crohn's + UC colon references (batch-corrected across three studies).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_organ_reference.py" data-tip="Turns GTEx normal tissue into engine-compatible organ references. v2.4 doubled the coverage from 4 organs (liver/heart/kidney/colon) to 8 (added nerve, brain cortex, uterus, ovary).">scripts/build_organ_reference.py</span></td><td class="role-text">Builds the 8 organ baselines from GTEx normal tissue.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="compute_gtex_organ_irs.py" data-tip="Assigns inflammation scores to GTEx organ samples so they can be sliced into inflammation windows just like patient samples.">scripts/compute_gtex_organ_irs.py</span></td><td class="role-text">Scores GTEx organ samples on the inflammation axis.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_dynamism_modifiers_per_arch.py" data-tip="Some gene-gene connections only matter at certain inflammation levels. This script computes per-window 'dynamism' modifiers so the engine emphasizes the connections that actually change.">scripts/build_dynamism_modifiers_per_arch.py</span></td><td class="role-text">Emphasizes the gene connections that actually change as inflammation rises.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Immune-cell fingerprint substrate <span class="new-badge">v1.2 locked</span></h3>
+    <table class="scripts">
+      <thead><tr><th>Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="compute_switch_scores_canonical()" data-tip="The one and only entry point for scoring a dataset against the 489-switch immune-fingerprint schema. Always call this; never call the raw scorers directly — they don't attach the metadata that downstream code expects.">JaneScoring and IRS/compute_switches.py</span></td><td class="role-text">The mandatory entry point — score any dataset on all 489 immune fingerprints.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="relabel_all_datasets_to_v12.py" data-tip="Whenever the canonical switch labels change, run this. It refreshes all 62 scored dataset files to the current v1.2 schema in minutes (metadata-only, no re-scoring).">scripts/switch_refinement/relabel_all_datasets_to_v12.py</span></td><td class="role-text">Refreshes 62 scored dataset files when switch labels change.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="regenerate_switch_network.py" data-tip="Rebuilds the 20,803 switch-to-gene edges from the canonical mapping. The switch network is what AUCell consumes to infer cell activity.">scripts/switch_refinement/regenerate_switch_network.py</span></td><td class="role-text">Rebuilds the switch-to-gene network from the canonical mapping.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="patch_endothelial_subgroup.py" data-tip="A targeted schema patch — re-labels 27 endothelial-family switches that had been miscategorized under 'Stroma'. Required before v1.2 lock.">scripts/switch_refinement/patch_endothelial_subgroup.py</span></td><td class="role-text">Schema patch — re-labels 27 endothelial switches that were miscategorized.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="bulk_validation_arm.py" data-tip="Uses the 3,494-sample NGJ menstrual reference to disambiguate switches that fail in single-cell data. Sometimes 'fail in scRNA' means 'cell too rare', not 'switch is broken' — this script tells which is which.">scripts/switch_refinement/bulk_validation_arm.py</span></td><td class="role-text">Sorts switches that failed single-cell validation by whether the cells were rare or the switch was broken.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/irs.py" data-tip="The inflammation-axis scorer (IRS = Inflammation Reference Score). Reads gene expression, outputs a single number that says 'how inflamed is this sample, on a scale that's consistent across all tissues'.">engine/irs.py</span></td><td class="role-text">Scores any sample on the 'how inflamed is this' axis — consistent across tissues.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STAGE 2 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="stage2">
+    <header class="stage-header">
+      <div class="stage-num">02</div>
+      <h2 class="stage-title" data-tip-title="Stage 2 · The gene wiring diagram" data-tip="A directed graph that says 'gene A regulates gene B' for tens of millions of pairs. When a drug perturbs a few genes, this diagram tells us which other genes will respond. We build it in three layers: a base co-expression+TF network, then microbe/microRNA layers, then we expand to the full gene space and cache it for fast loading.">Gene wiring diagram <span class="accent">— how 18,727 genes talk to each other</span></h2>
+      <span class="stage-tag">Layer · Network</span>
+    </header>
+    <p class="stage-question">When a drug perturbs a few genes · which other genes will respond?</p>
+    <p class="stage-lede">Drugs don't just affect their direct targets — they ripple through the network. To predict that ripple, the engine needs a wiring diagram: which genes regulate which other genes. We build it in three growing stages, each adding more biology, ending at 18,727 genes and 41.7 million regulatory connections.</p>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 320" xmlns="http://www.w3.org/2000/svg" aria-label="GRN construction progression">
+
+        <text x="600" y="28" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="15" fill="#AABBFF" opacity="0.8">Each circle is a wiring diagram. Each is bigger than the last.</text>
+
+        <!-- Stage 1 -->
+        <g class="hoverable" data-tip-title="Starting diagram · base biology" data-tip="The first build. We measure which genes go up and down together across menstrual samples (co-expression edges), then add edges from two curated databases: JASPAR (which transcription factors bind which gene promoters) and CollecTRI (curated TF-target pairs). Result: 10,532 genes connected by their regulatory relationships.">
+          <circle cx="170" cy="170" r="62" fill="rgba(170,187,255,0.15)" stroke="#AABBFF" stroke-width="1.5"/>
+          <text x="170" y="166" text-anchor="middle" font-size="22" class="lbl-title" fill="#fff">10.5K</text>
+          <text x="170" y="186" text-anchor="middle" font-size="10" fill="#AABBFF">genes</text>
+          <text x="170" y="258" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">Starting diagram</text>
+          <text x="170" y="278" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">which genes co-vary +</text>
+          <text x="170" y="293" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">known regulator pairs</text>
+        </g>
+
+        <!-- Arrow with description -->
+        <g>
+          <path class="arrow" d="M 240 170 L 360 170" marker-end="url(#arr1)"/>
+          <text x="300" y="153" text-anchor="middle" font-size="11" fill="#963789" font-style="italic">+ gut microbes</text>
+          <text x="300" y="188" text-anchor="middle" font-size="11" fill="#963789" font-style="italic">+ microRNAs</text>
+        </g>
+
+        <!-- Stage 2 -->
+        <g class="hoverable" data-tip-title="+ microbes &amp; microRNAs" data-tip="Real biology has more than just gene-gene regulation. Gut bacteria interact with the immune system; small RNAs called microRNAs silence specific genes. This layer adds both: microbiome co-occurrence edges (weighted at 1.9 in disease analyses) and miRNA-target pairs from TargetScan + mirTarBase (weighted at 0.1). Now 12,094 nodes.">
+          <circle cx="445" cy="170" r="75" fill="rgba(150,55,137,0.20)" stroke="#963789" stroke-width="1.5"/>
+          <text x="445" y="166" text-anchor="middle" font-size="22" class="lbl-title" fill="#fff">12.1K</text>
+          <text x="445" y="186" text-anchor="middle" font-size="10" fill="#AABBFF">nodes</text>
+          <text x="445" y="270" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">+ microbes &amp; miRNAs</text>
+          <text x="445" y="290" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">multi-omic biology</text>
+        </g>
+
+        <!-- Arrow -->
+        <g>
+          <path class="arrow arrow-coral" d="M 525 170 L 660 170" marker-end="url(#arr2)"/>
+          <text x="592" y="153" text-anchor="middle" font-size="11" fill="#EF4451" font-style="italic">+ genes from</text>
+          <text x="592" y="188" text-anchor="middle" font-size="11" fill="#EF4451" font-style="italic">every tissue</text>
+        </g>
+
+        <!-- Stage 3 -->
+        <g class="hoverable" data-tip-title="The production wiring diagram" data-tip="The version the engine actually uses. We expand the gene space to include every gene we track in every tissue (skin, blood, liver, heart, gut, etc.), then ask CollecTRI to fill in regulatory edges for the new genes. Result: 18,727 genes connected by 41.7 million directed regulatory edges. All drug targets are present (in v2.3 MAPK10 and IMPDH1 had been missing). The file is 3.8 GB.">
+          <circle cx="760" cy="170" r="100" fill="rgba(239,68,81,0.22)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="760" y="160" text-anchor="middle" font-size="26" class="lbl-title" fill="#fff">18.7K</text>
+          <text x="760" y="184" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">PRODUCTION</text>
+          <text x="760" y="295" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">Full wiring diagram</text>
+          <text x="760" y="313" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">41.7M connections · 3.8 GB</text>
+        </g>
+
+        <!-- Arrow -->
+        <g>
+          <path class="arrow" d="M 860 170 L 985 170" marker-end="url(#arr3)"/>
+          <text x="922" y="153" text-anchor="middle" font-size="11" fill="#963789" font-style="italic">pre-bake into</text>
+          <text x="922" y="188" text-anchor="middle" font-size="11" fill="#963789" font-style="italic">fast format</text>
+        </g>
+
+        <!-- Stage 4 -->
+        <g class="hoverable" data-tip-title="The speed cache" data-tip="Loading the 3.8 GB pickle file takes 130 seconds. That's fine if you do it once. But every script that needs the network would otherwise wait 2+ minutes. So we pre-bake the edges into a compressed NumPy NPZ — 676 MB, loads in 4.5 seconds. Every script reads from this.">
+          <rect x="1000" y="115" width="170" height="110" rx="8" fill="rgba(74,169,108,0.20)" stroke="#4AA96C" stroke-width="1.5"/>
+          <text x="1085" y="142" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">Speed cache</text>
+          <text x="1085" y="166" text-anchor="middle" font-size="11" fill="#AABBFF">loads in 4.5s</text>
+          <text x="1085" y="184" text-anchor="middle" font-size="11" fill="#AABBFF">(not 2 minutes)</text>
+          <text x="1085" y="208" text-anchor="middle" font-size="10" fill="#4AA96C" font-style="italic">676 MB compressed</text>
+        </g>
+
+        <defs>
+          <marker id="arr1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#EF4451"/></marker>
+          <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+        </defs>
+      </svg>
+      <div class="fig-cap">Fig 2 · The wiring diagram grows in three steps from menstrual co-expression to a multi-omic, multi-tissue 18,727-gene production graph — then gets pre-baked for fast loading.</div>
+    </div>
+
+    <table class="scripts">
+      <thead><tr><th>Script / Module</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="01_build_network.py" data-tip="Builds the starting wiring diagram. Computes which genes go up and down together across menstrual samples (co-expression), then adds curated transcription factor → target edges from JASPAR and CollecTRI. Result: 10,532 genes.">scripts/01_build_network.py</span></td><td class="role-text">Builds the starting wiring diagram (10,532 genes).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="07_multiomic_grn.py" data-tip="Adds gut microbes and microRNAs as additional regulatory layers. microRNAs silence target genes (edges from TargetScan + mirTarBase); microbes co-occur with immune signatures (edges from menstrual metatranscriptomics).">scripts/07_multiomic_grn.py</span></td><td class="role-text">Adds microbes and microRNAs as regulatory layers.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_harmonized_grn.py" data-tip="Expands the gene space to include every gene we track in any tissue (skin, blood, liver, heart, gut, etc.). Adds 6,633 new genes. Asks CollecTRI to fill in regulatory edges for them. Result: 18,727 nodes / 41.7 million edges. This is the production diagram.">scripts/build_harmonized_grn.py</span></td><td class="role-text">Expands the diagram to include genes from every tissue we study.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_ectopic_grn.py" data-tip="Tissue-specific build for ectopic endometrium (endometriosis lesions). Note: only 33 samples — underpowered. For formal endo analyses we use the menstrual-stratified reference instead.">scripts/build_ectopic_grn.py</span></td><td class="role-text">Tissue-specific build for ectopic endometriosis lesions.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="08_disease_stratified_grn.py" data-tip="Some gene-gene edges only matter at certain inflammation levels. This script scales edge weights by per-inflammation-window correlation strength.">scripts/08_disease_stratified_grn.py</span></td><td class="role-text">Adjusts edge strengths to reflect inflammation level.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/cross_tissue.build_tissue_grn()" data-tip="Tissue-specific wiring builder with an automatic edge-density cap of 20 million directed edges. Without the cap, dense tissues like skin produce ungainly graphs that break the math. With it, the engine binary-searches the correlation threshold to land just under the cap. Required for batch screening.">engine/cross_tissue.build_tissue_grn()</span></td><td class="role-text">Tissue-specific builder with an automatic edge-density cap.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STAGE 3 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="stage3">
+    <header class="stage-header">
+      <div class="stage-num">03</div>
+      <h2 class="stage-title" data-tip-title="Stage 3 · Drop in a drug" data-tip="The simulation step. We pick a drug, look up what proteins it binds to, calculate how strongly it should hit each one (adjusted for how much of that target is present in the tissue), then propagate that perturbation through the gene wiring diagram. The output is a prediction: how will each of the 18,727 genes change?">Drop in a drug <span class="accent">— and watch the network respond</span></h2>
+      <span class="stage-tag">Layer · Simulation</span>
+    </header>
+    <p class="stage-question">Given a drug · which way will every gene move?</p>
+    <p class="stage-lede">Now the wiring diagram earns its keep. We pick a drug, perturb its direct targets, and let the network propagate the effect to every other gene. The trick is doing this for 1,783 drugs in 37 minutes instead of 71 hours — which is why we factorize the math <em>once</em> per organ and reuse the answer.</p>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 460" xmlns="http://www.w3.org/2000/svg" aria-label="Simulation pipeline">
+
+        <text x="600" y="28" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="15" fill="#AABBFF" opacity="0.8">Six steps from drug name to per-gene prediction</text>
+
+        <!-- Step 1: Pick a drug -->
+        <g class="hoverable" data-tip-title="Step 1 · Pick a drug" data-tip="The candidate. Could be from our curated drug-target map (CDD-2728, BMS-986360, etc.) or any of the 5,404 ChEMBL drugs the engine knows about. In a batch screen, this is each of 1,783 compounds in turn.">
+          <rect x="50" y="60" width="220" height="60" rx="30" fill="rgba(239,68,81,0.25)" stroke="#EF4451" stroke-width="2"/>
+          <text x="160" y="86" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">STEP 1</text>
+          <text x="160" y="106" text-anchor="middle" font-size="14" class="lbl-title" fill="#fff">Pick a drug</text>
+        </g>
+        <path class="arrow arrow-coral" d="M 160 120 L 160 145" marker-end="url(#arrf1)"/>
+
+        <!-- Step 2: Find targets -->
+        <g class="hoverable" data-tip-title="Step 2 · Find its targets" data-tip="Look up which proteins the drug binds to. CDD-2728 = MAPK8 + MAPK10. BMS-986360 = MAPK8 only. For drugs with multiple targets, we average their effects across only the targets that actually have downstream connections in the wiring diagram (so a 'dead' target doesn't inflate the score).">
+          <rect x="50" y="155" width="220" height="60" rx="6" fill="rgba(150,55,137,0.20)" stroke="#963789" stroke-width="1.5"/>
+          <text x="160" y="181" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">STEP 2</text>
+          <text x="160" y="201" text-anchor="middle" font-size="14" class="lbl-title" fill="#fff">Find its targets</text>
+        </g>
+        <path class="arrow" d="M 160 215 L 160 240" marker-end="url(#arrf2)"/>
+
+        <!-- Step 3: Adjust strength -->
+        <g class="hoverable" data-tip-title="Step 3 · Adjust strength for tissue (v2.4 NEW)" data-tip="A drug only does as much as its target lets it. If you give a JNK inhibitor to a tissue where JNK is barely expressed, the perturbation should be small even if the drug is potent. v2.4 adds this expression-scaling step — magnitude scales with how much of the target gene is actually present in this tissue. It changed 16-23% of drug scores from v2.3.">
+          <rect x="50" y="250" width="220" height="80" rx="6" fill="rgba(239,68,81,0.22)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="160" y="276" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">STEP 3 · v2.4 NEW</text>
+          <text x="160" y="296" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">Adjust strength</text>
+          <text x="160" y="316" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">for the tissue</text>
+        </g>
+        <path class="arrow arrow-coral" d="M 270 290 L 380 240" marker-end="url(#arrf3)"/>
+
+        <!-- Step 4: Set up the math -->
+        <g class="hoverable" data-tip-title="Step 4 · Set up the response equation" data-tip="With the wiring diagram in hand, we write down the equation that describes how the network will rebalance after the drug perturbation. Mathematically it's a linear system Mx=u, but the intuition is: 'given this poke, find the new equilibrium where every gene's incoming signals balance its outgoing signals.' We use spectral-norm regularization (a knob set to 0.75) to keep the solution well-behaved across very different gene networks.">
+          <rect x="380" y="210" width="240" height="100" rx="6" fill="rgba(170,187,255,0.12)" stroke="#AABBFF" stroke-width="1.5"/>
+          <text x="500" y="236" text-anchor="middle" font-size="11" class="lbl-tag" fill="#AABBFF">STEP 4</text>
+          <text x="500" y="256" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">Set up the equation</text>
+          <text x="500" y="276" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">'given this poke,</text>
+          <text x="500" y="291" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">find the new equilibrium'</text>
+        </g>
+        <path class="arrow" d="M 620 260 L 685 260" marker-end="url(#arrf4)"/>
+
+        <!-- Step 5: Solve once -->
+        <g class="hoverable" data-tip-title="Step 5 · Solve the expensive part once" data-tip="The expensive operation is the 'matrix factorization' — building an inverse-like representation of the network response. The clever part: we do it ONCE per organ, then re-use it for every drug. This is how a batch screen of 1,783 drugs finishes in 37 minutes instead of 71 hours.">
+          <rect x="685" y="210" width="220" height="100" rx="6" fill="rgba(104,50,172,0.25)" stroke="#6832AC" stroke-width="2"/>
+          <text x="795" y="236" text-anchor="middle" font-size="11" class="lbl-tag" fill="#AABBFF">STEP 5</text>
+          <text x="795" y="256" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">Solve once</text>
+          <text x="795" y="276" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">re-use for every drug</text>
+        </g>
+        <path class="arrow" d="M 905 260 L 970 260" marker-end="url(#arrf5)"/>
+
+        <!-- Step 6: Run all drugs -->
+        <g class="hoverable" data-tip-title="Step 6 · Run all 1,783 drugs" data-tip="With the network response pre-computed, every additional drug is essentially free — about 5 milliseconds. The entire library of 1,783 candidates against 8 organs + 3 disease tissues completes in 37 minutes. This is the operation that makes the screen tractable.">
+          <rect x="970" y="210" width="200" height="100" rx="6" fill="rgba(74,169,108,0.20)" stroke="#4AA96C" stroke-width="2"/>
+          <text x="1070" y="236" text-anchor="middle" font-size="11" class="lbl-tag" fill="#4AA96C">STEP 6</text>
+          <text x="1070" y="256" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">Run all drugs</text>
+          <text x="1070" y="276" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">~5 ms each</text>
+          <text x="1070" y="293" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">37 min total</text>
+        </g>
+
+        <!-- Output -->
+        <path class="arrow arrow-coral" d="M 1070 310 L 1070 370" marker-end="url(#arrf6)"/>
+        <g class="hoverable" data-tip-title="The output · per-gene predictions" data-tip="One number per gene, per drug, per tissue: how much does this gene go up or down. For 18,727 genes × 1,783 drugs × 11 tissues, that's a few hundred million predictions. Microbe and microRNA nodes are filtered from the user-facing output — they're network-internal only.">
+          <rect x="900" y="380" width="270" height="65" rx="8" fill="rgba(239,68,81,0.25)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="1035" y="404" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="18" fill="#fff">Per-gene predictions</text>
+          <text x="1035" y="424" text-anchor="middle" font-size="11" fill="#AABBFF">how much each gene moves</text>
+          <text x="1035" y="438" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">the input to every downstream score</text>
+        </g>
+
+        <defs>
+          <marker id="arrf1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#EF4451"/></marker>
+          <marker id="arrf2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrf3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#EF4451"/></marker>
+          <marker id="arrf4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrf5" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrf6" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#EF4451"/></marker>
+        </defs>
+      </svg>
+      <div class="fig-cap">Fig 3 · Six steps from drug name to per-gene prediction. Steps 4-5 are the trick — set up the equation once, re-use across the whole library.</div>
+    </div>
+
+    <table class="scripts">
+      <thead><tr><th>Module / Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="engine/simulator.py" data-tip="The simulation core. Holds the linear-equation solver, the Monte Carlo uncertainty machinery, the multi-target averaging rule, and (new in v2.4) the expression-scaling step.">engine/simulator.py</span></td><td class="role-text">The simulation core — applies drug perturbations to the network.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/solver.py" data-tip="The fast batch solver. Builds the response matrix once, factorizes it once, then solves for thousands of drugs at once. Required for every batch screen with more than 10 drugs.">engine/solver.py</span></td><td class="role-text">The fast batch solver — the heart of the 37-minute screen.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/context.py" data-tip="Implements the hub-and-spoke rule. Drugs propagate through the disease-tissue wiring diagram, but scoring happens against the menstrual hub — never cross-propagate. This is the architectural rule that keeps the engine honest.">engine/context.py</span></td><td class="role-text">Enforces the hub-and-spoke rule — drugs propagate in tissue, get scored against the menstrual hub.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="10_disease_drug_predictor.py" data-tip="The careful version. Includes formal Monte Carlo uncertainty (samples the parameters many times to put error bars on every prediction). Slower but produces gold-standard error bars.">scripts/10_disease_drug_predictor.py</span></td><td class="role-text">The careful version — slow, with formal uncertainty bars.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="10b_fast_batch_predictor.py" data-tip="The fast version. Drops the error bars for ~10× throughput. Used for screening passes; hits are then re-run with the careful version.">scripts/10b_fast_batch_predictor.py</span></td><td class="role-text">The fast version — ~10× quicker, no error bars.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="11_fast_predictor.py" data-tip="The current default. A single script that does both — fast mode with an MC flag.">scripts/11_fast_predictor.py</span></td><td class="role-text">The unified default — fast by default, careful with a flag.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_batch_screen_vectorized.py" data-tip="The production batch screen. Locks the screening methodology: 60% target-screen rank + 40% disease-collapse score for targets; a 3-metric composite for compounds. Uses the fast batch solver. ~37 min for 3 diseases. Output goes to outputs/batch_screen_v2.4/.">scripts/run_batch_screen_vectorized.py</span></td><td class="role-text">The production batch screen — ranks 1,783 drugs across 3 diseases in 37 minutes.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_batch_repurposing_screen.py" data-tip="The slower per-drug backup. Used when memory pressure or job-system constraints force one drug at a time. Resumable on crash.">scripts/run_batch_repurposing_screen.py</span></td><td class="role-text">The slower per-drug backup — resumable on crash.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STAGE 4 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="stage4">
+    <header class="stage-header">
+      <div class="stage-num">04</div>
+      <h2 class="stage-title" data-tip-title="Stage 4 · Scoring &amp; safety" data-tip="Now we have a per-gene prediction for every drug. Four parallel scoring lanes turn that into rankable numbers. Lane A asks: does the drug move the patient toward health? Lane B applies corrections for known confounders. Lane C asks: will the drug damage any organ? Lane D enriches with known off-target binding from ChEMBL.">Does it help? Will it hurt? <span class="accent">— four parallel scoring lanes</span></h2>
+      <span class="stage-tag">Layer · Score</span>
+    </header>
+    <p class="stage-question">Given the prediction · is the drug good for the patient and safe for their organs?</p>
+    <p class="stage-lede">The per-gene prediction is the input. Four scoring lanes turn it into numbers a human (or a ranking algorithm) can act on. Two of them grade efficacy (does the drug push the patient toward healthy?). One of them grades safety (does it push any organ toward toxic?). One of them enriches with what we already know about the drug from the literature.</p>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 380" xmlns="http://www.w3.org/2000/svg" aria-label="Four scoring lanes">
+        <!-- Input -->
+        <g class="hoverable" data-tip-title="The input · per-gene predictions" data-tip="Coming from Stage 3. For each drug, for each tissue, we know how each gene is predicted to move. This is what flows into the four scoring lanes.">
+          <rect x="450" y="20" width="300" height="60" rx="30" fill="rgba(239,68,81,0.25)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="600" y="46" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">FROM STAGE 3</text>
+          <text x="600" y="66" text-anchor="middle" font-size="13" class="lbl-title" fill="#fff">per-gene predictions</text>
+        </g>
+
+        <!-- Splitter lines -->
+        <path class="arrow" d="M 600 80 L 600 105"/>
+        <path class="arrow" d="M 600 105 L 145 130"/>
+        <path class="arrow" d="M 600 105 L 445 130"/>
+        <path class="arrow arrow-coral" d="M 600 105 L 755 130"/>
+        <path class="arrow" d="M 600 105 L 1055 130"/>
+
+        <!-- Lane 4A -->
+        <g class="hoverable" data-tip-title="Lane A · Does the drug move the patient toward health?" data-tip="Two ways to ask this. (1) Tissue concordance: does the predicted change pattern look like 'disease minus healthy'? If yes, the drug is moving the patient toward healthy. (2) Menstrual alignment: does the resulting gene co-expression look like menstrual biology at a less-inflamed state? Both metrics independently scored AUC ≈ 0.75 on the DISCOVER psoriasis trial.">
+          <rect x="40" y="130" width="210" height="220" rx="6" fill="rgba(74,169,108,0.15)" stroke="#4AA96C" stroke-width="1.5"/>
+          <text x="145" y="158" text-anchor="middle" font-size="11" class="lbl-tag" fill="#4AA96C">LANE A · EFFICACY</text>
+          <line x1="60" y1="170" x2="230" y2="170" stroke="#4AA96C" stroke-opacity="0.4"/>
+          <text x="145" y="195" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="17" fill="#fff">Does it help?</text>
+          <text x="145" y="226" text-anchor="middle" font-size="11" fill="#AABBFF">Does it push the patient</text>
+          <text x="145" y="244" text-anchor="middle" font-size="11" fill="#AABBFF">toward healthy biology?</text>
+          <line x1="60" y1="260" x2="230" y2="260" stroke="#4AA96C" stroke-opacity="0.2"/>
+          <text x="145" y="280" text-anchor="middle" font-size="11" fill="#fff" font-style="italic">two scoring metrics</text>
+          <text x="145" y="300" text-anchor="middle" font-size="10" fill="#AABBFF">tissue concordance</text>
+          <text x="145" y="316" text-anchor="middle" font-size="10" fill="#AABBFF">+ menstrual alignment</text>
+          <text x="145" y="338" text-anchor="middle" font-size="10" fill="#4AA96C" font-style="italic">both AUC ≈ 0.75</text>
+        </g>
+
+        <!-- Lane 4B -->
+        <g class="hoverable" data-tip-title="Lane B · Adjust for confounders" data-tip="Real biology is messier than a linear model. Four corrections live here. Composition: did the drug really change cells, or just change which cell types are present? Nonlinear: 811 genes that don't obey linear dynamics. Fibrosis: a separate 6-component model of scar-tissue formation (v2.4 NEW). Autophagy: 54 genes that score 'response readiness' across 8 sub-pathways.">
+          <rect x="340" y="130" width="210" height="220" rx="6" fill="rgba(150,55,137,0.18)" stroke="#963789" stroke-width="1.5"/>
+          <text x="445" y="158" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">LANE B · CORRECTIONS</text>
+          <line x1="360" y1="170" x2="530" y2="170" stroke="#963789" stroke-opacity="0.4"/>
+          <text x="445" y="195" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="17" fill="#fff">Adjust for noise</text>
+          <text x="445" y="226" text-anchor="middle" font-size="11" fill="#AABBFF">Confounders the linear</text>
+          <text x="445" y="244" text-anchor="middle" font-size="11" fill="#AABBFF">model can't catch alone</text>
+          <line x1="360" y1="260" x2="530" y2="260" stroke="#963789" stroke-opacity="0.2"/>
+          <text x="445" y="280" text-anchor="middle" font-size="10" fill="#fff">cell composition shifts</text>
+          <text x="445" y="296" text-anchor="middle" font-size="10" fill="#fff">nonlinear genes (811)</text>
+          <text x="445" y="312" text-anchor="middle" font-size="10" fill="#fff">fibrosis <tspan fill="#EF4451" font-weight="700">v2.4</tspan></text>
+          <text x="445" y="328" text-anchor="middle" font-size="10" fill="#fff">autophagy readiness</text>
+        </g>
+
+        <!-- Lane 4C -->
+        <g class="hoverable" data-tip-title="Lane C · Will it hurt the organs?" data-tip="The deepest scoring lane. For each of 8 organs (liver, heart, kidney, gut, nerve, brain, uterus, ovary), we run 7 different damage detectors: (1) does the drug perturb known toxicity readout genes? (2) does it disrupt key pathways? (3) does it perturb safety genes by a lot? (4) is the perturbation close to safety genes in the network? (5) does it shift transcription factor activity? (6) do the molecular properties (lipophilicity etc.) predict tox? (7) does it block dangerous ion channels (hERG, Cav1.2, Nav1.5)? 24 organ-specific damage signatures total.">
+          <rect x="640" y="130" width="230" height="220" rx="6" fill="rgba(239,68,81,0.18)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="755" y="158" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">LANE C · SAFETY</text>
+          <line x1="660" y1="170" x2="850" y2="170" stroke="#EF4451" stroke-opacity="0.4"/>
+          <text x="755" y="195" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="17" fill="#fff">Will it hurt?</text>
+          <text x="755" y="226" text-anchor="middle" font-size="11" fill="#AABBFF">Check 8 organs for damage</text>
+          <text x="755" y="244" text-anchor="middle" font-size="11" fill="#AABBFF">7 different ways each</text>
+          <line x1="660" y1="260" x2="850" y2="260" stroke="#EF4451" stroke-opacity="0.2"/>
+          <text x="755" y="280" text-anchor="middle" font-size="10" fill="#fff">tox readout genes</text>
+          <text x="755" y="295" text-anchor="middle" font-size="10" fill="#fff">pathway disruption</text>
+          <text x="755" y="310" text-anchor="middle" font-size="10" fill="#fff">network proximity to safety</text>
+          <text x="755" y="325" text-anchor="middle" font-size="10" fill="#fff">hERG / Cav1.2 / Nav1.5 block</text>
+          <text x="755" y="343" text-anchor="middle" font-size="10" fill="#EF4451" font-style="italic">24 tox signatures · 8 organs</text>
+        </g>
+
+        <!-- Lane 4D -->
+        <g class="hoverable" data-tip-title="Lane D · What else do we know about this drug?" data-tip="ChEMBL is a public database of 2+ million compound-target interactions. We use it for three things. First, off-target binding: every drug binds more than its 'intended' target — we look up everything else it sticks to. Second, safety annotations: 1,009 drugs in our reference have FDA hepatotoxicity (DILIrank) or cardiotoxicity (DICTrank) labels. Third, resolve-any-drug: even if a compound isn't in our curated map, we can pull its targets from ChEMBL on the fly.">
+          <rect x="960" y="130" width="195" height="220" rx="6" fill="rgba(104,50,172,0.20)" stroke="#6832AC" stroke-width="1.5"/>
+          <text x="1058" y="158" text-anchor="middle" font-size="11" class="lbl-tag" fill="#AABBFF">LANE D · CONTEXT</text>
+          <line x1="980" y1="170" x2="1140" y2="170" stroke="#6832AC" stroke-opacity="0.5"/>
+          <text x="1058" y="195" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="17" fill="#fff">What else?</text>
+          <text x="1058" y="226" text-anchor="middle" font-size="11" fill="#AABBFF">Off-targets and safety</text>
+          <text x="1058" y="244" text-anchor="middle" font-size="11" fill="#AABBFF">from public literature</text>
+          <line x1="980" y1="260" x2="1140" y2="260" stroke="#6832AC" stroke-opacity="0.3"/>
+          <text x="1058" y="280" text-anchor="middle" font-size="10" fill="#fff">5,404 drugs known</text>
+          <text x="1058" y="296" text-anchor="middle" font-size="10" fill="#fff">1.42M off-target binds</text>
+          <text x="1058" y="312" text-anchor="middle" font-size="10" fill="#fff">FDA safety labels</text>
+          <text x="1058" y="330" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">resolve any compound</text>
+        </g>
+
+      </svg>
+      <div class="fig-cap">Fig 4 · One prediction in, four answers out. A and B grade efficacy; C grades safety; D grounds the result in what literature already knows about the drug.</div>
+    </div>
+
+    <h3>Lane A · Efficacy scoring</h3>
+    <table class="scripts">
+      <thead><tr><th>Module</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="engine/network.py" data-tip="Implements the original menstrual-trajectory restoration metric. Asks: does the drug's predicted change move the patient's gene-gene correlation pattern toward what we see in healthy menstrual samples at a less-inflamed window?">engine/network.py</span></td><td class="role-text">Original metric · does the drug restore healthy gene-gene relationships?</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/cross_tissue.py" data-tip="The cross-tissue scorer. Holds both DISCOVER-validated Pearson metrics: tissue concordance (against disease-healthy deviation) and menstrual alignment (against IRS-matched menstrual co-expression). Both AUC 0.75 on the DISCOVER trial.">engine/cross_tissue.py</span></td><td class="role-text">Computes tissue concordance + menstrual alignment (both AUC ≈ 0.75).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/collapse_drivers.py" data-tip="Six methods to identify which genes are critical 'bottlenecks' for restoring tissue health: Dynamic Network Biomarkers, eigenvector centrality, WGCNA module preservation, pathway preservation, Granger causality, key driver analysis.">engine/collapse_drivers.py</span></td><td class="role-text">Finds the genes that act as bottlenecks for restoring health.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Lane B · Correction modules</h3>
+    <table class="scripts">
+      <thead><tr><th>Module</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="engine/composition.py" data-tip="Adjusts predicted changes for cell-type composition shifts. If the drug just kills inflammatory cells, the 'change' will look like fewer myeloid markers — but the cells that remain may not be different. This module separates 'cells changed' from 'cell mix changed'.">engine/composition.py</span></td><td class="role-text">Separates 'cells changed' from 'cell mix changed'.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/nonlinear.py" data-tip="Continuous interaction corrections for 811 genes where the linear assumption breaks down (Hill saturation, multi-attractor switching, etc.).">engine/nonlinear.py</span></td><td class="role-text">Corrects predictions for 811 genes that don't behave linearly.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/fibrosis.py — v2.4 NEW" data-tip="A separate 6-component fibrosis model calibrated on NASH liver biopsies (Kleiner F0-F4 staging). Major components: fibroblast activation state (weight 0.633), persistence (0.337). Detects when a drug is moving tissue toward scar formation. AUC=0.734 vs Kleiner stage. Reported alongside efficacy scores; not part of the composite ranking yet.">engine/fibrosis.py <span class="new-badge">v2.4</span></span></td><td class="role-text">Detects drugs that promote scar tissue formation.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/autophagy.py" data-tip="54 genes across 8 sub-pathways scoring 'autophagy readiness' — how well the cell can clear damaged components. Important in tissues where autophagic flux is a primary response readout.">engine/autophagy.py</span></td><td class="role-text">Scores 'response readiness' via autophagy pathway activity.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Lane C · Organ safety scoring</h3>
+    <table class="scripts">
+      <thead><tr><th>Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="build_tox_signatures.py" data-tip="For each of 24 toxicity mechanisms (e.g., 'liver mitochondrial damage', 'kidney proximal tubule injury', 'cardiac hERG block'), propagates a known toxic perturbation through the organ's wiring diagram to produce a reference 'damage signature'. v2.4 has 24 signatures across 8 organs.">scripts/build_tox_signatures.py</span></td><td class="role-text">Builds 24 reference 'damage signatures' across 8 organs.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_tier2_tox_signatures.py" data-tip="v2.4 adds 7 new damage signatures on 4 new organs: peripheral neuropathy (N1 demyelination, N2 axonal), brain-blood barrier disruption (CN1), uterine dysfunction (U1 myometrial, U2 endometrial), follicular atresia (O1 ovary), and a data-driven heart signature (H_SCT from Au Yeung 2024).">scripts/build_tier2_tox_signatures.py</span></td><td class="role-text">v2.4 — adds 7 damage signatures on nerve, brain, uterus, ovary, heart.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_datadriven_tox_profiles.py" data-tip="An alternative to mechanism signatures. Takes the mean perturbation profile of known toxic drugs (e.g., DILIrank 'most-DILI-concern') vs known safe drugs and uses the difference as an empirical damage signature.">scripts/build_datadriven_tox_profiles.py</span></td><td class="role-text">Builds empirical damage signatures from known toxic vs safe drugs.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_tox_ensemble.py" data-tip="Trains a logistic-regression + gradient-boosted-tree ensemble that combines all 7 scoring layers per organ into a single prediction, with cross-validated feature importance to see which layers carry the signal.">scripts/build_tox_ensemble.py</span></td><td class="role-text">Trains an ensemble that combines all 7 scoring layers into one prediction.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="validate_tox_signatures.py" data-tip="Validates the organ tox scoring on real FDA labels. Kidney AUC=0.776 (n=117, ChEMBL nephrotox), liver AUC=0.718 (n=132, DILIrank vMost vs vNo), colon AUC=0.686 (n=148, ChEMBL GI tox), heart AUC=0.620 (n=105, DICTrank).">scripts/validate_tox_signatures.py</span></td><td class="role-text">Validates organ tox scores against FDA labels (kidney 0.776, liver 0.718).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="score_dili_controls.py" data-tip="Sanity check. Runs the liver tox score on a small set of known positive (acetaminophen, troglitazone) and negative (aspirin, ibuprofen) controls. If a positive control suddenly looks safe, something has broken.">scripts/score_dili_controls.py</span></td><td class="role-text">Sanity check — known hepatotoxins should score worse than known safe drugs.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Lane D · Public-literature enrichment</h3>
+    <table class="scripts">
+      <thead><tr><th>Module / Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="engine/chembl.py" data-tip="The ChEMBL interface. Methods to look up off-targets, safety annotations, FDA labels, and to resolve drugs the engine has never seen before. Includes a sigmoid weighting that turns pChEMBL affinity values into perturbation weights, and a classifier that tags heart-toxic drugs as hERG-driven vs kinase-driven vs mixed.">engine/chembl.py</span></td><td class="role-text">Looks up off-targets, safety labels, and binding affinities for any compound.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_chembl_reference.py" data-tip="One-time bulk ETL from the ChEMBL 36 SQLite dump. Produces our compact CSV cache: 5,404 drugs, 1.42M off-target relationships (binding affinity ≥ pChEMBL 5), 1,009 drugs with FDA safety annotations.">scripts/build_chembl_reference.py</span></td><td class="role-text">One-time build of the 5,404-drug, 1.42M-edge ChEMBL reference cache.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_repurposing_library.py" data-tip="Builds the unified screening library by combining Broad Hub shelved compounds with ChEMBL 36 drugs. About 1,783 compounds — the inputs to the v2.4 batch screen.">scripts/build_repurposing_library.py</span></td><td class="role-text">Builds the 1,783-compound screening library (Broad Hub + ChEMBL).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="enrich_repurposing_library.py" data-tip="Adds commercial / clinical context to engine scores: trial phase, FDA approval status, regulatory holds, patent landscape, mechanism class. So 'this is the top hit' comes with 'and it's a phase-2 compound from company X with no IP encumbrance'.">scripts/enrich_repurposing_library.py</span></td><td class="role-text">Adds clinical and commercial context to scored compounds.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="download_sider.py" data-tip="Pulls SIDER 4.1, a public side-effect database. Maps drugs to the side effects they've produced clinically (using MedDRA terms).">scripts/download_sider.py</span></td><td class="role-text">Pulls public clinical side-effect data (SIDER).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SCORING VOCABULARY -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="vocab">
+    <header class="stage-header">
+      <div class="stage-num">04½</div>
+      <h2 class="stage-title" data-tip-title="The scoring vocabulary" data-tip="The scoring lanes in Stage 4 don't produce one number — they produce a handful of named metrics, each answering a specific question. This section is the reference glossary: what each metric measures, how it's computed (in English), and how to read the value.">The scoring vocabulary <span class="accent">— what each number actually measures</span></h2>
+      <span class="stage-tag">Reference</span>
+    </header>
+    <p class="stage-question">When we say '0.826' or 'NES 2.74' · what is being measured?</p>
+    <p class="stage-lede">The four scoring lanes produce a handful of named metrics. Each one answers a specific question with a specific number. Here's what they measure, how they're computed (no formulas, just intuition), and what a 'good' value looks like for each.</p>
+
+    <!-- ─── EFFICACY METRICS ─── -->
+    <div class="vocab-section-title">Efficacy metrics</div>
+    <p class="vocab-section-sub">Lane A · Does the drug move the patient toward health?</p>
+
+    <div class="metric-grid">
+
+      <div class="metric-card efficacy">
+        <h4>Tissue concordance</h4>
+        <div class="metric-cat">Pearson correlation · 15,000 genes</div>
+        <div class="row"><div class="lbl">Asks</div><div class="val">Does the drug's predicted gene-by-gene change look like moving the patient <em>from sick toward healthy</em> in this tissue?</div></div>
+        <div class="row"><div class="lbl">How</div><div class="val">Take the predicted change for every gene. Take the 'sick minus healthy' direction (the gap that needs closing). Compute their correlation. If positive, the drug is closing the gap. If negative, it's widening it.</div></div>
+        <div class="row"><div class="lbl">Reads</div><div class="val">A number between −1 and +1. Positive = restoring health. Higher is better.</div></div>
+        <div class="benchmark"><strong>DISCOVER psoriasis · AUC 0.749</strong> for predicting Ustekinumab PASI75 response from baseline biopsies (n=67).</div>
+      </div>
+
+      <div class="metric-card efficacy">
+        <h4>Menstrual alignment</h4>
+        <div class="metric-cat">Pearson correlation · 14,000 genes · IRS-matched</div>
+        <div class="row"><div class="lbl">Asks</div><div class="val">At this patient's inflammation level, does the resulting gene-gene structure look more like <em>menstrual biology</em> — our gold-standard health map?</div></div>
+        <div class="row"><div class="lbl">How</div><div class="val">The menstrual hub has a gene-gene correlation matrix for every inflammation window. Find the window matching the patient's IRS. Compare the predicted gene-gene structure to that menstrual reference. If they match, the drug is restoring menstrual-like balance.</div></div>
+        <div class="row"><div class="lbl">Reads</div><div class="val">Correlation, −1 to +1. Higher = more menstrual-like = healthier. Captures different biology than tissue concordance (only 46% shared variance).</div></div>
+        <div class="benchmark"><strong>DISCOVER · AUC 0.750</strong> · combined with tissue concordance: <strong>AUC 0.766</strong>. The 'both-high' patient quadrant has a <strong>92% PASI75 response rate</strong> (OR=23, p&lt;0.0001).</div>
+      </div>
+
+    </div>
+
+    <!-- ─── VALIDATION METRICS ─── -->
+    <div class="vocab-section-title">Validation metrics</div>
+    <p class="vocab-section-sub">Used at the gate · how well do predictions match real-world drug effects?</p>
+
+    <div class="metric-grid">
+
+      <div class="metric-card validation">
+        <h4>NPA · Network Perturbation Amplitude</h4>
+        <div class="metric-cat">Adapted from Martin et al. 2014</div>
+        <div class="row"><div class="lbl">Asks</div><div class="val">After weighting genes by how central they are to the network (hub genes count more), how well does the prediction match what we actually measured?</div></div>
+        <div class="row"><div class="lbl">How</div><div class="val">Multiply predicted change by observed change, gene by gene. Weight each by that gene's connectivity in the network backbone. Sum it all up. The result is a signed concordance score — positive when prediction and reality agree, negative when they diverge.</div></div>
+        <div class="row"><div class="lbl">Reads</div><div class="val">Always reported with two p-values. <strong>O</strong> = gene specificity (would shuffling gene labels give the same score?). <strong>K</strong> = structure specificity (would using a random network give the same score?). Both p&lt;0.002 means the score is really about <em>this</em> drug acting on <em>this</em> network.</div></div>
+        <div class="benchmark"><strong>Aspirin in real patients · NPA 0.826</strong> (O,K p&lt;0.002).<br><strong>CDD-2728 ex vivo · NPA 0.892</strong> in high-inflammation subset (pooled 0.839).</div>
+      </div>
+
+      <div class="metric-card validation">
+        <h4>WES &amp; NES · Weighted Enrichment Score</h4>
+        <div class="metric-cat">CMap / LINCS methodology</div>
+        <div class="row"><div class="lbl">Asks</div><div class="val">Are the genes the engine predicted would go <em>up</em> actually up in the data? And conversely for <em>down</em>?</div></div>
+        <div class="row"><div class="lbl">How</div><div class="val">In the observed data, rank every gene from most-up to most-down. Now look at the genes the engine predicted should go up — where do they sit in the ranking? If they cluster at the top, that's positive enrichment. WES quantifies it; NES (Normalized Enrichment Score) re-scales WES so values are comparable across experiments.</div></div>
+        <div class="row"><div class="lbl">Reads</div><div class="val">NES around 2 is meaningful enrichment. NES &gt; 2.5 is strong. Positive NES = predictions match direction; negative = opposite direction.</div></div>
+        <div class="benchmark"><strong>Aspirin · NES 2.74</strong>.<br><strong>CDD-2728 high-IRS · NES 2.57</strong>.<br><strong>Ibuprofen · NES 2.15</strong>.</div>
+      </div>
+
+    </div>
+
+    <!-- ─── SAFETY METRICS ─── -->
+    <div class="vocab-section-title">Safety &amp; biological-state metrics</div>
+    <p class="vocab-section-sub">Lane B + Lane C · is the drug damaging anything, and what state is the tissue in?</p>
+
+    <div class="metric-grid">
+
+      <div class="metric-card safety">
+        <h4>Organ tox AUC</h4>
+        <div class="metric-cat">Per organ · validated against FDA labels</div>
+        <div class="row"><div class="lbl">Asks</div><div class="val">When we rank all drugs by predicted damage to a given organ, how well does that ranking separate <em>known toxic</em> from <em>known safe</em> drugs?</div></div>
+        <div class="row"><div class="lbl">How</div><div class="val">Each organ has a 'damage signature' — a reference perturbation pattern that represents injury. Every drug is scored against the signature. Then we compare against FDA labels (DILIrank for liver, DICTrank for heart, ChEMBL nephrotox for kidney, ChEMBL GI for colon) and compute the AUC.</div></div>
+        <div class="row"><div class="lbl">Reads</div><div class="val">1.0 = perfect ranking (every toxic ranks above every safe). 0.5 = random. The pattern across organs tells a story: <em>kidney damage is mostly transcriptional — heart damage often happens through ion channels that don't change gene expression</em>.</div></div>
+        <div class="benchmark"><strong>Kidney · AUC 0.776</strong> (n=117, ChEMBL).<br><strong>Liver · AUC 0.718</strong> (n=132, DILIrank).<br><strong>Colon · AUC 0.686</strong> (n=148, ChEMBL).<br><strong>Heart · AUC 0.620</strong> (n=105, DICTrank).</div>
+      </div>
+
+      <div class="metric-card safety">
+        <h4>Fibrosis composite <span class="new-badge">v2.4</span></h4>
+        <div class="metric-cat">6 components · NASH-calibrated</div>
+        <div class="row"><div class="lbl">Asks</div><div class="val">Is the drug pushing the tissue toward <em>scar formation</em>?</div></div>
+        <div class="row"><div class="lbl">How</div><div class="val">Six fibrosis components are scored independently: <em>fibroblast activation state</em> (weight 0.633), <em>persistence</em> / ECM (0.337), hepatic stellate activation, fibrogenic cytokine signaling, resolution failure, ECM remodeling. They combine into a single composite.</div></div>
+        <div class="row"><div class="lbl">Reads</div><div class="val">Higher = more pro-fibrotic. Calibrated against 216 NASH liver biopsies (Kleiner F0-F4 staging).</div></div>
+        <div class="benchmark"><strong>AUC 0.734</strong> separating Kleiner F0-1 from F2-4.<br>Composite correlation <strong>ρ = +0.410</strong> with Kleiner stage.<br>Currently <em>informational</em> — reported alongside efficacy, not yet in composite ranking.</div>
+      </div>
+
+      <div class="metric-card substrate">
+        <h4>IRS · Inflammation Reference Score</h4>
+        <div class="metric-cat">Universal yardstick · cross-tissue</div>
+        <div class="row"><div class="lbl">Asks</div><div class="val">On a single scale that means the same thing in skin, blood, liver, gut, anywhere — how inflamed is this sample?</div></div>
+        <div class="row"><div class="lbl">How</div><div class="val">A trained mixer (IRS_mixed_v3) reads gene expression and outputs one number. Calibrated against the menstrual reference, so 'high inflammation in skin' means roughly the same biological state as 'high inflammation in blood'.</div></div>
+        <div class="row"><div class="lbl">Reads</div><div class="val">A continuous score. Patient samples shift higher than healthy controls. We slice it into 31 sliding windows for reference building. Used <em>everywhere</em> — every cohort, every drug response analysis.</div></div>
+        <div class="benchmark"><strong>The universal inflammation yardstick.</strong> Every reference map, every drug perturbation, every patient sample carries an IRS value.</div>
+      </div>
+
+      <div class="metric-card substrate">
+        <h4>Collapse drivers</h4>
+        <div class="metric-cat">6 methods · ranked gene list per disease</div>
+        <div class="row"><div class="lbl">Asks</div><div class="val">Which genes are the <em>bottlenecks</em>? If we could restore just a handful of genes, which ones would do the most to restore tissue health?</div></div>
+        <div class="row"><div class="lbl">How</div><div class="val">Six methods identify critical nodes in the diseased network: <em>(1)</em> Dynamic Network Biomarkers — genes whose co-expression explodes near disease transitions; <em>(2)</em> Eigenvector centrality — the network's biggest hubs; <em>(3)</em> WGCNA module preservation — modules that fall apart in disease; <em>(4)</em> Pathway preservation; <em>(5)</em> Granger causality — genes that predict others' changes; <em>(6)</em> Key Driver Analysis. Genes scoring high across multiple methods are flagged.</div></div>
+        <div class="row"><div class="lbl">Reads</div><div class="val">A ranked list per disease. The top-ranked genes are the most attractive drug targets — restoring them should restore the most downstream network structure.</div></div>
+        <div class="benchmark">Used in target prioritization for the v2.4 candidate shortlist — feeds into the 60%/40% composite weighting (60% target screen rank, 40% collapse score).</div>
+      </div>
+
+    </div>
+
+    <!-- ─── How the metrics combine ─── -->
+    <div class="vocab-section-title">How the metrics combine into a candidate rank</div>
+    <p class="vocab-section-sub">No single score decides — the production rank is a composite that combines efficacy, safety, and network position</p>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 280" xmlns="http://www.w3.org/2000/svg" aria-label="Composite scoring">
+
+        <!-- Inputs -->
+        <g class="hoverable" data-tip-title="Tissue concordance + Menstrual alignment" data-tip="Both ADR-016 metrics carry into the efficacy component. Higher = drug restores healthy biology more strongly.">
+          <rect x="40" y="40" width="240" height="60" rx="6" fill="rgba(74,169,108,0.18)" stroke="#4AA96C" stroke-width="1.5"/>
+          <text x="160" y="65" text-anchor="middle" font-size="11" class="lbl-tag" fill="#4AA96C">EFFICACY</text>
+          <text x="160" y="86" text-anchor="middle" font-size="12" fill="#fff">tissue + menstrual concordance</text>
+        </g>
+
+        <g class="hoverable" data-tip-title="Organ tox + Off-target enrichment" data-tip="The safety contribution. Drugs that score high on any of the 24 damage signatures, or that bind safety-critical off-targets, get penalized.">
+          <rect x="40" y="120" width="240" height="60" rx="6" fill="rgba(239,68,81,0.18)" stroke="#EF4451" stroke-width="1.5"/>
+          <text x="160" y="145" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">SAFETY</text>
+          <text x="160" y="166" text-anchor="middle" font-size="12" fill="#fff">organ tox · off-targets · hERG</text>
+        </g>
+
+        <g class="hoverable" data-tip-title="Collapse driver position" data-tip="Does the drug's target sit on a critical bottleneck node in the diseased network? Targets that do score higher in the composite.">
+          <rect x="40" y="200" width="240" height="60" rx="6" fill="rgba(150,55,137,0.20)" stroke="#963789" stroke-width="1.5"/>
+          <text x="160" y="225" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">NETWORK POSITION</text>
+          <text x="160" y="246" text-anchor="middle" font-size="12" fill="#fff">collapse driver score</text>
+        </g>
+
+        <!-- Arrows -->
+        <path class="arrow" d="M 285 70 L 460 130" marker-end="url(#arrcompose)"/>
+        <path class="arrow arrow-coral" d="M 285 150 L 460 150" marker-end="url(#arrcompose)"/>
+        <path class="arrow" d="M 285 230 L 460 170" marker-end="url(#arrcompose)"/>
+
+        <!-- Composite -->
+        <g class="hoverable" data-tip-title="The composite rank · ADR-020" data-tip="Methodology locked by ADR-020. For target prioritization: 60% target screen rank + 40% disease-specific collapse score. For compound prioritization: a 3-metric composite. Filters applied: zero-edge targets removed, non-positive concordance removed, all-unsafe compounds excluded.">
+          <rect x="470" y="100" width="290" height="100" rx="8" fill="rgba(239,68,81,0.25)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="615" y="128" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">COMPOSITE RANK</text>
+          <text x="615" y="155" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="20" fill="#fff">60% efficacy</text>
+          <text x="615" y="180" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="20" fill="#fff">+ 40% network</text>
+        </g>
+
+        <path class="arrow" d="M 770 150 L 900 150" marker-end="url(#arrcompose)"/>
+
+        <!-- Filters -->
+        <g class="hoverable" data-tip-title="Filters" data-tip="Three filters applied before publishing the rank: (1) zero-edge targets removed (a target gene with no downstream connections can't be propagated through), (2) non-positive tissue concordance removed (the drug isn't restoring at all), (3) all-unsafe compounds excluded (would damage every organ tested).">
+          <rect x="910" y="100" width="240" height="100" rx="6" fill="rgba(191,135,123,0.20)" stroke="#BF877B" stroke-width="1.5"/>
+          <text x="1030" y="128" text-anchor="middle" font-size="11" class="lbl-tag" fill="#BF877B">FILTERS</text>
+          <text x="1030" y="150" text-anchor="middle" font-size="11" fill="#fff">remove zero-edge targets</text>
+          <text x="1030" y="168" text-anchor="middle" font-size="11" fill="#fff">remove non-positive concord.</text>
+          <text x="1030" y="186" text-anchor="middle" font-size="11" fill="#fff">remove all-unsafe compounds</text>
+        </g>
+
+        <defs>
+          <marker id="arrcompose" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+        </defs>
+      </svg>
+      <div class="fig-cap">Fig 4½ · How efficacy, safety, and network metrics combine into the production rank (ADR-020). Three filters guard the final shortlist.</div>
+    </div>
+
+    <div class="callout">
+      <span class="label">Reading the dashboards</span>
+      <p>When a candidate report shows <em>"NPA 0.83 (O,K p&lt;0.002) · WES NES 2.7 · tissue concordance 0.31 · menstrual alignment 0.28 · liver tox 0.21 · heart tox 0.08"</em>, you can now decode it: the drug looks real (NPA + NES are strong), it's modestly restoring tissue and menstrual structure (concordances positive), it's safe for heart (low) but watch the liver (moderate).</p>
+    </div>
+
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STAGE 5 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="stage5">
+    <header class="stage-header">
+      <div class="stage-num">05</div>
+      <h2 class="stage-title" data-tip-title="Stage 5 · The validation gate" data-tip="No engine change ships without re-passing four real-world tests. Each one compares engine predictions against measured drug effects in either patients or lab dishes. The cached version of this gate is forbidden — it was caught reporting PASS twice on a regressed engine — so every engine change re-runs the simulations live.">The validation gate <span class="accent">— four real-world tests the engine must pass</span></h2>
+      <span class="stage-tag">Layer · Gate</span>
+    </header>
+    <p class="stage-question">Before we ship any change · do the predictions still match reality?</p>
+    <p class="stage-lede">Predictions are easy. Predictions that match reality are rare. Every engine change is gated against four real-world benchmarks: two drugs whose effects on patients we've measured, and two metrics on the DISCOVER psoriasis trial. If any one regresses, the change doesn't ship.</p>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 380" xmlns="http://www.w3.org/2000/svg" aria-label="Validation gate">
+
+        <text x="600" y="32" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="18" fill="#fff">Four benchmarks · all must hold · all re-run live · no cache</text>
+
+        <!-- Pillar 1 -->
+        <g class="hoverable" data-tip-title="Test 1 · Predict aspirin in real patients" data-tip="We have measured gene-expression changes from 214 women who took aspirin vs 1,223 who didn't (in the NGJ menstrual cohort). The engine's predicted aspirin effect should correlate with what we actually measured. Score: 0.826 (1.0 would be perfect, 0.5 would be random). Aspirin's primary targets PTGS1/PTGS2 have 889 outgoing edges in the wiring diagram — they ripple a lot.">
+          <rect x="60" y="80" width="210" height="240" rx="6" fill="rgba(74,169,108,0.18)" stroke="#4AA96C" stroke-width="2"/>
+          <text x="165" y="115" text-anchor="middle" font-size="11" class="lbl-tag" fill="#4AA96C">TEST 1</text>
+          <text x="165" y="138" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="14" fill="#fff">Aspirin in patients</text>
+          <text x="165" y="158" text-anchor="middle" font-size="10" fill="#AABBFF">measured vs predicted</text>
+          <line x1="80" y1="172" x2="250" y2="172" stroke="#4AA96C" stroke-opacity="0.4"/>
+          <text x="165" y="220" text-anchor="middle" font-family="Playfair Display" font-size="48" class="lbl-title" fill="#fff">0.826</text>
+          <text x="165" y="245" text-anchor="middle" font-size="11" fill="#AABBFF">concordance</text>
+          <line x1="80" y1="270" x2="250" y2="270" stroke="#4AA96C" stroke-opacity="0.3"/>
+          <text x="165" y="290" text-anchor="middle" font-size="10" fill="#AABBFF">214 drug vs 1,223 baseline</text>
+          <text x="165" y="306" text-anchor="middle" font-size="10" fill="#AABBFF">p &lt; 0.002</text>
+        </g>
+
+        <!-- Pillar 2 -->
+        <g class="hoverable" data-tip-title="Test 2 · Predict CDD-2728 in lab dishes" data-tip="CDD-2728 is NGJ's lead JNK inhibitor. We have ex-vivo data: 45 menstrual samples treated with CDD-2728 vs IL1B vehicle control (10 μM, 120 min). The engine should predict the measured change pattern. Pooled score 0.839; in the high-inflammation subset (where JNK activity is highest), score climbs to 0.892.">
+          <rect x="300" y="80" width="210" height="240" rx="6" fill="rgba(150,55,137,0.18)" stroke="#963789" stroke-width="2"/>
+          <text x="405" y="115" text-anchor="middle" font-size="11" class="lbl-tag" fill="#963789">TEST 2</text>
+          <text x="405" y="138" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="14" fill="#fff">CDD-2728 ex vivo</text>
+          <text x="405" y="158" text-anchor="middle" font-size="10" fill="#AABBFF">JNK inhibitor · lab dish</text>
+          <line x1="320" y1="172" x2="490" y2="172" stroke="#963789" stroke-opacity="0.4"/>
+          <text x="405" y="220" text-anchor="middle" font-family="Playfair Display" font-size="48" class="lbl-title" fill="#fff">0.892</text>
+          <text x="405" y="245" text-anchor="middle" font-size="11" fill="#AABBFF">high-inflammation subset</text>
+          <line x1="320" y1="270" x2="490" y2="270" stroke="#963789" stroke-opacity="0.3"/>
+          <text x="405" y="290" text-anchor="middle" font-size="10" fill="#AABBFF">pooled 0.839</text>
+          <text x="405" y="306" text-anchor="middle" font-size="10" fill="#AABBFF">enrichment score 2.57</text>
+        </g>
+
+        <!-- Pillar 3 -->
+        <g class="hoverable" data-tip-title="Test 3 · Predict psoriasis trial responders" data-tip="The DISCOVER trial: 67 psoriasis patients treated with Ustekinumab. The engine ranks patients by predicted response (computed before treatment, from their baseline biopsies). Then we check if the patients ranked 'likely responder' actually achieved PASI75 at 12 weeks. AUC = 0.749 says the ranking is meaningfully better than random (0.5).">
+          <rect x="540" y="80" width="210" height="240" rx="6" fill="rgba(104,50,172,0.20)" stroke="#6832AC" stroke-width="2"/>
+          <text x="645" y="115" text-anchor="middle" font-size="11" class="lbl-tag" fill="#AABBFF">TEST 3</text>
+          <text x="645" y="138" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="14" fill="#fff">Psoriasis responders</text>
+          <text x="645" y="158" text-anchor="middle" font-size="10" fill="#AABBFF">predict before treatment</text>
+          <line x1="560" y1="172" x2="730" y2="172" stroke="#6832AC" stroke-opacity="0.5"/>
+          <text x="645" y="220" text-anchor="middle" font-family="Playfair Display" font-size="48" class="lbl-title" fill="#fff">0.749</text>
+          <text x="645" y="245" text-anchor="middle" font-size="11" fill="#AABBFF">AUC vs PASI75</text>
+          <line x1="560" y1="270" x2="730" y2="270" stroke="#6832AC" stroke-opacity="0.3"/>
+          <text x="645" y="290" text-anchor="middle" font-size="10" fill="#AABBFF">DISCOVER trial · 67 patients</text>
+          <text x="645" y="306" text-anchor="middle" font-size="10" fill="#AABBFF">Ustekinumab arm</text>
+        </g>
+
+        <!-- Pillar 4 -->
+        <g class="hoverable" data-tip-title="Test 4 · Independent second readout" data-tip="The same 67 DISCOVER patients, but a totally different scoring method (menstrual alignment instead of tissue concordance). AUC = 0.750, almost identical to Test 3. But the two metrics share only 46% of their variance — they're capturing different biology. Together: AUC=0.766, and the 'both-high' quadrant has a 92% response rate.">
+          <rect x="780" y="80" width="210" height="240" rx="6" fill="rgba(239,68,81,0.22)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="885" y="115" text-anchor="middle" font-size="11" class="lbl-tag" fill="#EF4451">TEST 4</text>
+          <text x="885" y="138" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="14" fill="#fff">Independent readout</text>
+          <text x="885" y="158" text-anchor="middle" font-size="10" fill="#AABBFF">different metric, same patients</text>
+          <line x1="800" y1="172" x2="970" y2="172" stroke="#EF4451" stroke-opacity="0.5"/>
+          <text x="885" y="220" text-anchor="middle" font-family="Playfair Display" font-size="48" class="lbl-title" fill="#fff">0.750</text>
+          <text x="885" y="245" text-anchor="middle" font-size="11" fill="#AABBFF">AUC vs PASI75</text>
+          <line x1="800" y1="270" x2="970" y2="270" stroke="#EF4451" stroke-opacity="0.3"/>
+          <text x="885" y="290" text-anchor="middle" font-size="10" fill="#AABBFF">combined with Test 3: 0.766</text>
+          <text x="885" y="306" text-anchor="middle" font-size="10" fill="#AABBFF">both-high → 92% response</text>
+        </g>
+
+        <!-- Gate seal -->
+        <g class="hoverable" data-tip-title="The live gate · run_live_validation.py" data-tip="Every engine change runs all four tests live — re-simulating from scratch on the new code, not reading a cache. Why? Because the cache version was caught reporting PASS twice in a row on an engine that had silently regressed. From that day, no cached numbers count for the gate. Re-simulate or don't ship.">
+          <rect x="1015" y="120" width="155" height="160" rx="78" fill="rgba(239,68,81,0.35)" stroke="#EF4451" stroke-width="3" class="glow"/>
+          <text x="1093" y="180" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="22" fill="#fff">re-run</text>
+          <text x="1093" y="210" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="22" fill="#fff">live</text>
+          <text x="1093" y="248" text-anchor="middle" font-size="10" letter-spacing="2" fill="#fff" font-weight="700">MANDATORY</text>
+        </g>
+
+        <!-- Gate floor -->
+        <line x1="40" y1="335" x2="1180" y2="335" stroke="#AABBFF" stroke-opacity="0.3" stroke-width="2"/>
+        <text x="600" y="362" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="14" fill="#AABBFF" opacity="0.8">no shortcut · no cache · no PR if any test regresses</text>
+      </svg>
+      <div class="fig-cap">Fig 5 · Four pillars hold up the gate. Each one is a published, measured drug effect. Each one must hold — re-simulated from scratch — for any engine change to ship.</div>
+    </div>
+
+    <div class="callout">
+      <span class="label">Primary Gate · Mandatory</span>
+      <p>Every engine, parameter, or solver change must re-run <code>scripts/run_live_validation.py</code> end-to-end. None of the four scores above may regress.</p>
+    </div>
+
+    <div class="callout warn">
+      <span class="label">Deprecated 2026-04-15</span>
+      <p><code>run_validation_gate.py</code> reads cached metrics and was caught reporting PASS twice on a silently-regressed engine. Do not use it for gating.</p>
+    </div>
+
+    <table class="scripts">
+      <thead><tr><th>Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="run_live_validation.py" data-tip="THE primary gate. Runs all four benchmarks live, from scratch — re-simulates rather than reading any cached scores. Required after every engine, parameter, or solver change.">scripts/run_live_validation.py</span></td><td class="role-text">THE gate · re-runs Tests 1–4 live from scratch.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_discover_benchmark.py" data-tip="Specifically runs the DISCOVER psoriasis benchmark (Tests 3 and 4). Computes both tissue-concordance AUC and menstrual-alignment AUC; reports their combined rank-product as well.">scripts/run_discover_benchmark.py</span></td><td class="role-text">Re-runs the DISCOVER psoriasis trial benchmark (Tests 3 + 4).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="validate_npa.py" data-tip="Implements Network Perturbation Amplitude — a signed concordance score weighted by the gene network's backbone connectivity. Adapted from Martin et al. 2014.">scripts/validate_npa.py</span></td><td class="role-text">Implements the NPA scoring math (Martin et al. 2014).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="validate_enrichment.py" data-tip="Implements the Weighted Enrichment Score — a signed enrichment statistic. Asks whether the predicted-up genes are actually up in the observed data (CMap/LINCS methodology).">scripts/validate_enrichment.py</span></td><td class="role-text">Implements WES (CMap/LINCS-style enrichment scoring).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="validate_interaction_quick.py" data-tip="A/B test: linear ODE solver vs interaction-corrected nonlinear version. Runs aspirin scoring across 4 disease strata. Used during phase development to make sure interaction corrections don't regress baselines.">scripts/validate_interaction_quick.py</span></td><td class="role-text">Quick A/B test of linear vs nonlinear simulation.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="psort_magnitude_calibration.py" data-tip="Calibrates the engine's predicted concordance to the expected clinical effect size (e.g., expected change in PASI score). Uses the PSORT trial (E-MTAB-14509).">scripts/psort_magnitude_calibration.py</span></td><td class="role-text">Calibrates engine scores to expected clinical effect sizes.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="psort_hs_patient_validation.py" data-tip="Independent replication of the DISCOVER findings using a different trial (PSORT) and a different disease (HS treated with adalimumab, from GSE155176). Tests whether the dual-metric framework generalizes.">scripts/psort_hs_patient_validation.py</span></td><td class="role-text">Replicates DISCOVER findings on a different trial and disease.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="sweep_regularization.py" data-tip="The math has one big knob (the regularization parameter, set to 0.75). This script sweeps it and re-runs live validation. Don't trust the cached gate after a reg change — it has hidden the regression twice.">scripts/sweep_regularization.py</span></td><td class="role-text">Sweeps the main math knob and re-runs the gate for each setting.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_parameter_sensitivity.py" data-tip="Sweeps the weights for each evidence type (co-expression, microRNA, microbe) independently, holding the others constant. Used to tune the disease-predictor parameters.">scripts/run_parameter_sensitivity.py</span></td><td class="role-text">Sweeps individual evidence-type weights (microbe, miRNA, co-expression).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="engine/validation.py" data-tip="Validation infrastructure: leave-one-disease-out cross-validation, the benchmark registry, shared evaluation utilities.">engine/validation.py</span></td><td class="role-text">Validation infrastructure (cross-validation, benchmark registry).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- STAGE 6 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="stage6">
+    <header class="stage-header">
+      <div class="stage-num">06</div>
+      <h2 class="stage-title" data-tip-title="Stage 6 · Orchestration" data-tip="One top-level script — run_v24_rescreen.py — drives the entire pipeline end to end in four phases. Phase 1 pre-bakes the math for each organ. Phase 2 scores every drug against every organ for safety. Phase 3 scores every drug against the disease tissues for efficacy. Phase 4 merges everything, ranks, and exports the candidate shortlist.">Orchestration <span class="accent">— how the whole thing runs end to end</span></h2>
+      <span class="stage-tag">Layer · Orchestrator</span>
+    </header>
+    <p class="stage-question">When we hit 'run' · what actually happens in what order?</p>
+    <p class="stage-lede">One script ties everything together in four phases. Pre-bake the math once. Score every drug against every organ for safety. Score every drug against every disease tissue for efficacy. Merge, rank, export. About an hour from start to finish for the full library.</p>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg" aria-label="v2.4 orchestration phases">
+
+        <text x="600" y="28" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="16" fill="#AABBFF" opacity="0.8">run_v24_rescreen.py · four phases · about an hour total</text>
+
+        <!-- Timeline -->
+        <line x1="80" y1="160" x2="1130" y2="160" stroke="#AABBFF" stroke-opacity="0.3" stroke-width="2"/>
+
+        <!-- Phase 1 -->
+        <g class="hoverable" data-tip-title="Phase 1 · Prep the math" data-tip="Build the response equations for each of 8 organs and factorize them. This is the expensive operation that gets done once and re-used everywhere downstream. ~3 minutes per organ, ~24 minutes total. We also load the organ expression matrices into memory now so Phase 2 doesn't have to re-read them per drug.">
+          <circle cx="200" cy="160" r="52" fill="rgba(170,187,255,0.18)" stroke="#AABBFF" stroke-width="2"/>
+          <text x="200" y="156" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="22" fill="#fff">P1</text>
+          <text x="200" y="180" text-anchor="middle" font-size="10" fill="#AABBFF">3 min/organ</text>
+          <text x="200" y="60" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="16" fill="#AABBFF">Prep the math</text>
+          <text x="200" y="80" text-anchor="middle" font-size="11" fill="#AABBFF" opacity="0.8">factorize once per organ</text>
+          <text x="200" y="98" text-anchor="middle" font-size="11" fill="#AABBFF" opacity="0.8">load expression data</text>
+          <text x="200" y="240" text-anchor="middle" font-size="10" fill="#AABBFF" opacity="0.6">re-used in P2 + P3</text>
+        </g>
+
+        <!-- Phase 2 -->
+        <g class="hoverable" data-tip-title="Phase 2 · Safety scan" data-tip="Score all 1,783 drugs against all 8 organs for toxicity. Uses the cached LU factor from Phase 1, so each drug-organ pair takes about 5 milliseconds. Applies expression-scaling (the v2.4 ADR-021 step) and all 24 organ-damage signatures. ~15 minutes total. Output: a 1,783 × 8 safety matrix.">
+          <circle cx="480" cy="160" r="52" fill="rgba(150,55,137,0.22)" stroke="#963789" stroke-width="2"/>
+          <text x="480" y="156" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="22" fill="#fff">P2</text>
+          <text x="480" y="180" text-anchor="middle" font-size="10" fill="#AABBFF">~15 min</text>
+          <text x="480" y="60" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="16" fill="#963789">Safety scan</text>
+          <text x="480" y="80" text-anchor="middle" font-size="11" fill="#AABBFF" opacity="0.8">1,783 drugs × 8 organs</text>
+          <text x="480" y="98" text-anchor="middle" font-size="11" fill="#AABBFF" opacity="0.8">all 24 damage signatures</text>
+          <text x="480" y="240" text-anchor="middle" font-size="10" fill="#AABBFF" opacity="0.6">→ 1,783 × 8 safety matrix</text>
+        </g>
+
+        <!-- Phase 3 -->
+        <g class="hoverable" data-tip-title="Phase 3 · Efficacy scan" data-tip="Score all 1,783 drugs against 3 disease tissues (HS skin, endo-menstrual, lupus blood) for efficacy. Same fast-batch math. Computes tissue concordance, menstrual alignment, and collapse-driver scores per drug. ~37 minutes total. Output: a 1,783 × 3 efficacy matrix.">
+          <circle cx="760" cy="160" r="52" fill="rgba(104,50,172,0.25)" stroke="#6832AC" stroke-width="2"/>
+          <text x="760" y="156" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="22" fill="#fff">P3</text>
+          <text x="760" y="180" text-anchor="middle" font-size="10" fill="#AABBFF">~37 min</text>
+          <text x="760" y="60" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="16" fill="#6832AC">Efficacy scan</text>
+          <text x="760" y="80" text-anchor="middle" font-size="11" fill="#AABBFF" opacity="0.8">1,783 drugs × 3 diseases</text>
+          <text x="760" y="98" text-anchor="middle" font-size="11" fill="#AABBFF" opacity="0.8">HS · endo · lupus</text>
+          <text x="760" y="240" text-anchor="middle" font-size="10" fill="#AABBFF" opacity="0.6">→ 1,783 × 3 efficacy matrix</text>
+        </g>
+
+        <!-- Phase 4 -->
+        <g class="hoverable" data-tip-title="Phase 4 · Merge, rank, export" data-tip="Combine Phase 2 + Phase 3 results into a composite score. For target prioritization: 60% target-screen rank + 40% disease-specific collapse score. For compound prioritization: a 3-metric composite. Apply filters (zero-edge targets removed, all-unsafe compounds excluded). Export everything to outputs/batch_screen_v2.4/. Then build_v24_top_candidates.py picks the 30 best target-compound pairings.">
+          <circle cx="1040" cy="160" r="58" fill="rgba(239,68,81,0.28)" stroke="#EF4451" stroke-width="2.5" class="glow"/>
+          <text x="1040" y="156" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="22" fill="#fff">P4</text>
+          <text x="1040" y="180" text-anchor="middle" font-size="10" fill="#fff">rank + export</text>
+          <text x="1040" y="60" text-anchor="middle" font-family="Playfair Display" font-style="italic" font-size="16" fill="#EF4451">Merge &amp; rank</text>
+          <text x="1040" y="80" text-anchor="middle" font-size="11" fill="#AABBFF" opacity="0.8">composite scores</text>
+          <text x="1040" y="98" text-anchor="middle" font-size="11" fill="#AABBFF" opacity="0.8">apply filters</text>
+          <text x="1040" y="245" text-anchor="middle" font-size="10" fill="#EF4451" opacity="0.8">→ candidate shortlist</text>
+        </g>
+
+        <!-- Arrows -->
+        <path class="arrow" d="M 252 160 L 428 160" marker-end="url(#arrp1)"/>
+        <path class="arrow" d="M 532 160 L 708 160" marker-end="url(#arrp2)"/>
+        <path class="arrow arrow-coral" d="M 812 160 L 982 160" marker-end="url(#arrp3)"/>
+
+        <defs>
+          <marker id="arrp1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrp2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrp3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#EF4451"/></marker>
+        </defs>
+      </svg>
+      <div class="fig-cap">Fig 6 · The four-phase orchestration. Phase 1 pre-bakes the math; P2 + P3 reuse it for safety and efficacy; P4 ranks and exports the candidate shortlist.</div>
+    </div>
+
+    <table class="scripts">
+      <thead><tr><th>Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="script-name" data-tip-title="run_v24_rescreen.py — v2.4 ORCHESTRATOR" data-tip="The single entry point for the full v2.4 pipeline. Runs all four phases in order: factorize organ matrices, score safety, score efficacy, merge and export. Has CLI flags to run individual phases or restrict to a single disease.">scripts/run_v24_rescreen.py</span></td><td class="role-text">The v2.4 orchestrator — one command runs the full pipeline.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_full_pipeline.py" data-tip="The v2.3 orchestrator. Still works for reproducing v2.3 results but doesn't include the v2.4 additions (expression scaling, Tier 2 tox, fibrosis).">scripts/run_full_pipeline.py</span></td><td class="role-text">The v2.3 orchestrator (kept for reproduction).</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_batch_screen_vectorized.py" data-tip="The actual batch-screen engine that Phases 2 and 3 of the orchestrator call. Always uses the fast batch solver.">scripts/run_batch_screen_vectorized.py</span></td><td class="role-text">The batch-screen engine that the orchestrator calls.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="build_v24_top_candidates.py" data-tip="Post-processing: takes the ranked output from Phase 4 and picks the 30 best target-compound pairings, identifies 7 novel targets, attaches 16 clinical evidence entries. Applies the zero-edge filter, the all-unsafe filter, and the non-positive-tc filter.">scripts/build_v24_top_candidates.py</span></td><td class="role-text">Picks the 30 best target-compound pairings from the ranked output.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="prioritize_targets.py" data-tip="A standalone target prioritizer for when you want to re-rank with different druggability or safety filters. Used outside the main rescreen for ad-hoc analyses.">scripts/prioritize_targets.py</span></td><td class="role-text">Standalone target ranker for ad-hoc re-prioritization.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="rescore_all_portfolios.py" data-tip="Batch rescorer for 4 diseases × 8 organs against pre-built portfolios. Note: uses the slower per-drug solver — do NOT copy this pattern for new batch screens (use run_batch_screen_vectorized.py instead).">scripts/rescore_all_portfolios.py</span></td><td class="role-text">Batch rescorer for 4 diseases × 8 organs against pre-built portfolios.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_endo_drug_scoring.py" data-tip="Single-disease entry point for endometriosis. Scores 19 curated drugs through the ectopic GRN + menstrual reference combo.">scripts/run_endo_drug_scoring.py</span></td><td class="role-text">Endometriosis — scores 19 curated drugs.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_lupus_drug_scoring.py" data-tip="Single-disease entry point for lupus. Scores 16 drugs through kidney + blood references. Kidney is research-only; use blood for formal claims.">scripts/run_lupus_drug_scoring.py</span></td><td class="role-text">Lupus — scores 16 drugs against kidney + blood references.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_ibd_drug_scoring.py" data-tip="Single-disease entry point for inflammatory bowel disease (Crohn's + UC). Uses batch-corrected colon references.">scripts/run_ibd_drug_scoring.py</span></td><td class="role-text">IBD — Crohn's and UC against colon references.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_hs_fpr2_v2.py" data-tip="Targeted FPR2 agonist screen for HS, using HS-specific reference networks.">scripts/run_hs_fpr2_v2.py</span></td><td class="role-text">Targeted FPR2 agonist screen for HS.</td></tr>
+        <tr><td><span class="script-name" data-tip-title="run_ecs_screen.py" data-tip="Targeted endocannabinoid-system screen — filters compounds by ECS targets (CB1, CB2, FAAH, MAGL) and scores against disease tissues.">scripts/run_ecs_screen.py</span></td><td class="role-text">Targeted endocannabinoid-system screen.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="ornament">· · ·</div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- WHOLE FLOW -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="flow">
+    <header class="stage-header">
+      <h2 class="stage-title" data-tip-title="The whole flow on one page" data-tip="Foundation feeds reference and gene-wiring construction. Those feed simulation. Simulation feeds four parallel scoring lanes. The scores get gated against four real-world tests. Everything is orchestrated by one top-level script.">The whole flow on one page <span class="accent">— how the stages connect</span></h2>
+    </header>
+
+    <div class="figure">
+      <svg viewBox="0 0 1200 740" xmlns="http://www.w3.org/2000/svg" aria-label="End-to-end pipeline">
+        <!-- Stage 0 -->
+        <g class="hoverable" data-tip-title="Stage 0 · The rulebook" data-tip="Five small modules: config, io, solver, brand-style, statistics. Everything else imports from here.">
+          <rect x="430" y="20" width="340" height="55" rx="6" fill="rgba(170,187,255,0.10)" stroke="#AABBFF" stroke-width="1.5"/>
+          <text x="600" y="44" text-anchor="middle" font-size="10" letter-spacing="2" fill="#AABBFF" font-weight="700">STAGE 0</text>
+          <text x="600" y="63" text-anchor="middle" font-size="13" fill="#fff">The rulebook · constants &amp; helpers</text>
+        </g>
+
+        <!-- Splits to Stage 1 + 2 + ChEMBL -->
+        <path class="arrow" d="M 600 75 L 600 105" marker-end="url(#arrend1)"/>
+        <path class="arrow" d="M 600 105 L 250 130" marker-end="url(#arrend2)"/>
+        <path class="arrow" d="M 600 105 L 600 130" marker-end="url(#arrend3)"/>
+        <path class="arrow" d="M 600 105 L 950 130" marker-end="url(#arrend4)"/>
+
+        <g class="hoverable" data-tip-title="Stage 1 · Maps of biology" data-tip="The menstrual hub + 4 spoke families: disease tissues, healthy tissues, organ baselines, immune-cell fingerprints. The yardsticks for grading drug effects.">
+          <rect x="80" y="130" width="340" height="80" rx="6" fill="rgba(150,55,137,0.18)" stroke="#963789" stroke-width="1.5"/>
+          <text x="250" y="155" text-anchor="middle" font-size="10" letter-spacing="2" fill="#963789" font-weight="700">STAGE 1 · BIOLOGY MAPS</text>
+          <text x="250" y="178" text-anchor="middle" font-size="11" fill="#fff">menstrual hub · disease tissues</text>
+          <text x="250" y="196" text-anchor="middle" font-size="11" fill="#fff">healthy comparators · organs · cells</text>
+        </g>
+
+        <g class="hoverable" data-tip-title="Stage 2 · Gene wiring" data-tip="The 18,727-gene regulatory diagram with 41.7M connections. Built in three layers from base biology → multi-omic → harmonized.">
+          <rect x="430" y="130" width="340" height="80" rx="6" fill="rgba(150,55,137,0.18)" stroke="#963789" stroke-width="1.5"/>
+          <text x="600" y="155" text-anchor="middle" font-size="10" letter-spacing="2" fill="#963789" font-weight="700">STAGE 2 · GENE WIRING</text>
+          <text x="600" y="178" text-anchor="middle" font-size="11" fill="#fff">10.5K → 12.1K → 18.7K genes</text>
+          <text x="600" y="196" text-anchor="middle" font-size="11" fill="#fff">41.7 million regulatory connections</text>
+        </g>
+
+        <g class="hoverable" data-tip-title="ChEMBL · public drug knowledge" data-tip="5,404 drugs, 1.42M off-target relationships, FDA safety labels. Used in Stage 3 (resolve-any-drug) and Stage 4D (off-target enrichment).">
+          <rect x="780" y="130" width="340" height="80" rx="6" fill="rgba(104,50,172,0.22)" stroke="#6832AC" stroke-width="1.5"/>
+          <text x="950" y="155" text-anchor="middle" font-size="10" letter-spacing="2" fill="#AABBFF" font-weight="700">PUBLIC DRUG KNOWLEDGE</text>
+          <text x="950" y="178" text-anchor="middle" font-size="11" fill="#fff">5,404 drugs · 1.42M off-targets</text>
+          <text x="950" y="196" text-anchor="middle" font-size="11" fill="#fff">FDA safety annotations</text>
+        </g>
+
+        <!-- Down to Stage 3 -->
+        <path class="arrow" d="M 250 210 L 500 270" marker-end="url(#arrend5)"/>
+        <path class="arrow" d="M 600 210 L 600 270" marker-end="url(#arrend6)"/>
+        <path class="arrow" d="M 950 210 L 700 270" marker-end="url(#arrend7)"/>
+
+        <g class="hoverable" data-tip-title="Stage 3 · Drop in a drug" data-tip="The simulation. Adjust drug strength for tissue, set up the response equation, solve once, run all 1,783 drugs at once. Output: per-gene change predictions.">
+          <rect x="380" y="270" width="440" height="80" rx="6" fill="rgba(74,169,108,0.18)" stroke="#4AA96C" stroke-width="2"/>
+          <text x="600" y="295" text-anchor="middle" font-size="10" letter-spacing="2" fill="#4AA96C" font-weight="700">STAGE 3 · DROP IN A DRUG</text>
+          <text x="600" y="318" text-anchor="middle" font-size="11" fill="#fff">simulate response → per-gene predictions</text>
+          <text x="600" y="335" text-anchor="middle" font-size="11" fill="#EF4451" font-style="italic">~37 min for the whole library</text>
+        </g>
+
+        <!-- Down to Stage 4 -->
+        <path class="arrow" d="M 600 350 L 600 390" marker-end="url(#arrend8)"/>
+        <g class="hoverable" data-tip-title="Stage 4 · Four scoring lanes" data-tip="Lane A: does it help? Lane B: adjust for noise. Lane C: will it hurt? Lane D: what else do we know?">
+          <rect x="100" y="390" width="1000" height="105" rx="6" fill="rgba(170,187,255,0.06)" stroke="#AABBFF" stroke-width="1.5"/>
+          <text x="600" y="415" text-anchor="middle" font-size="10" letter-spacing="2" fill="#EF4451" font-weight="700">STAGE 4 · SCORE EVERY DRUG</text>
+          <text x="220" y="445" text-anchor="middle" font-size="11" fill="#fff">A · Does it help?</text>
+          <text x="220" y="465" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">tissue + menstrual</text>
+          <text x="220" y="481" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">concordance</text>
+          <text x="460" y="445" text-anchor="middle" font-size="11" fill="#fff">B · Adjust for noise</text>
+          <text x="460" y="465" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">composition · nonlinear</text>
+          <text x="460" y="481" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">fibrosis · autophagy</text>
+          <text x="720" y="445" text-anchor="middle" font-size="11" fill="#fff">C · Will it hurt?</text>
+          <text x="720" y="465" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">8 organs · 24 damage</text>
+          <text x="720" y="481" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">signatures · 7 layers</text>
+          <text x="970" y="445" text-anchor="middle" font-size="11" fill="#fff">D · What else?</text>
+          <text x="970" y="465" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">off-targets · ion channels</text>
+          <text x="970" y="481" text-anchor="middle" font-size="10" fill="#AABBFF" font-style="italic">FDA safety labels</text>
+        </g>
+
+        <!-- Down to Stage 5 -->
+        <path class="arrow arrow-coral" d="M 600 495 L 600 535" marker-end="url(#arrend9)"/>
+        <g class="hoverable" data-tip-title="Stage 5 · The validation gate" data-tip="Four real-world benchmarks. All must hold. All re-simulated live, not from cache.">
+          <rect x="280" y="535" width="640" height="80" rx="6" fill="rgba(239,68,81,0.20)" stroke="#EF4451" stroke-width="2" class="glow"/>
+          <text x="600" y="560" text-anchor="middle" font-size="10" letter-spacing="2" fill="#EF4451" font-weight="700">STAGE 5 · DOES IT MATCH REALITY? (MANDATORY)</text>
+          <text x="600" y="583" text-anchor="middle" font-size="11" fill="#fff">aspirin 0.826 · CDD-2728 0.892 · DISCOVER 0.749 + 0.750</text>
+          <text x="600" y="601" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">four benchmarks · all re-run live for every engine change</text>
+        </g>
+
+        <!-- Down to Stage 6 -->
+        <path class="arrow" d="M 600 615 L 600 655" marker-end="url(#arrend10)"/>
+        <g class="hoverable" data-tip-title="Stage 6 · Orchestration" data-tip="One top-level script runs the whole thing in four phases — prep, safety, efficacy, rank.">
+          <rect x="280" y="655" width="640" height="80" rx="6" fill="rgba(150,55,137,0.22)" stroke="#963789" stroke-width="2"/>
+          <text x="600" y="680" text-anchor="middle" font-size="10" letter-spacing="2" fill="#963789" font-weight="700">STAGE 6 · RUN EVERYTHING</text>
+          <text x="600" y="703" text-anchor="middle" font-size="11" fill="#fff">prep math → safety scan → efficacy scan → rank &amp; export</text>
+          <text x="600" y="721" text-anchor="middle" font-size="11" fill="#AABBFF" font-style="italic">~1 hour, end to end → candidate shortlist</text>
+        </g>
+
+        <defs>
+          <marker id="arrend1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrend2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrend3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrend4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrend5" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrend6" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrend7" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrend8" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+          <marker id="arrend9" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#EF4451"/></marker>
+          <marker id="arrend10" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#963789"/></marker>
+        </defs>
+      </svg>
+      <div class="fig-cap">Fig 7 · Six stages, one direction of flow. Hover any block for what it means; everything funnels through the validation gate before it ships.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- DELTAS -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="stage" id="deltas">
+    <header class="stage-header">
+      <div class="stage-num"><span style="font-style:italic;">Δ</span></div>
+      <h2 class="stage-title" data-tip-title="Δ v2.4 · what changed from v2.3" data-tip="Three additions over v2.3, all merged 2026-04-15. The full library of 1,783 drugs was re-screened on the new engine. v2.3 outputs are preserved alongside the v2.4 outputs for comparison.">What's new in v2.4 <span class="accent">— three additions over v2.3</span></h2>
+      <span class="stage-tag">2026-04-15</span>
+    </header>
+
+    <div class="delta-grid">
+      <div class="delta" data-tip-title="Expression-scaled magnitude · ADR-021" data-tip="In v2.3 every drug perturbed its target with the same strength regardless of tissue. v2.4 scales the strength by how much of the target gene is actually expressed in this tissue. A drug acting on a barely-expressed target in liver gets less perturbation than one acting on a highly-expressed target. Implemented in engine/simulator.compute_expr_scaling(). Changed 16-23% of drug scores compared to v2.3.">
+        <h4>Drug strength now scales with target expression</h4>
+        <div class="adr">ADR-021 · engine/simulator</div>
+        <p>A drug acting on a gene that's barely expressed in a tissue now correctly gets less perturbation. Changed 16-23% of scores vs v2.3.</p>
+      </div>
+      <div class="delta" data-tip-title="24 organ-damage signatures · ADR-014 Tier 2" data-tip="v2.3 had 17 damage signatures across 4 organs (liver, heart, kidney, gut). v2.4 adds 7 new signatures across 4 new organs: peripheral neuropathy (nerve), blood-brain barrier disruption (brain cortex), uterine dysfunction, follicular atresia (ovary), plus a data-driven heart signature based on Au Yeung 2024. Now 24 signatures total across 8 organs.">
+        <h4>Organ safety doubled — 8 organs, 24 damage signatures</h4>
+        <div class="adr">ADR-014 Tier 2</div>
+        <p>Added peripheral nerve, brain cortex, uterus, ovary, plus a data-driven heart signature. From 17 signatures across 4 organs to 24 across 8.</p>
+      </div>
+      <div class="delta" data-tip-title="Fibrosis model · ADR-019" data-tip="A new 6-component fibrosis scorer calibrated against GSE135251 NASH liver biopsies (Kleiner F0-F4 staging). Major components: fibroblast activation state (weight 0.633), persistence (0.337). AUC=0.734 vs Kleiner stage; ρ=+0.410 vs fibrosis stage. Scored per drug per disease tissue. Informational layer for now; not part of the composite rank yet.">
+        <h4>Fibrosis detector — does this drug promote scar tissue?</h4>
+        <div class="adr">ADR-019 · engine/fibrosis</div>
+        <p>6-component scorer calibrated on NASH liver biopsies. AUC=0.734 against Kleiner staging. Reported alongside efficacy scores.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="colophon">A map of the engine, drawn at v2.4.</div>
+    NextGen Jane · Perturbation Atlas · stephen@nextgenjane.com · 2026-04-15<br>
+    Authoritative refs · docs/PRODUCT_MAP.md · docs/CHANGE_CONTROL.md · CLAUDE.md
+  </footer>
+
+</div>
+
+<script>
+  // ─── 1. Wrap every figure SVG in a horizontal scroll container so dense
+  //         diagrams stay readable on narrow screens.
+  document.querySelectorAll('.figure > svg').forEach(svg => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'svg-scroll';
+    svg.parentNode.insertBefore(wrapper, svg);
+    wrapper.appendChild(svg);
+  });
+
+  // ─── 2. Tooltip system: hover-follow on desktop, tap-toggle bottom-sheet
+  //         on touch devices (iPhone/iPad).
+  (function() {
+    const tip = document.getElementById('tooltip');
+    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    let activeEl = null;
+
+    function buildHtml(el) {
+      const title = el.getAttribute('data-tip-title');
+      const body = el.getAttribute('data-tip');
+      if (!body) return null;
+      let html = '';
+      if (title) html += '<div class="tip-title">' + title + '</div>';
+      html += body;
+      if (isTouch) {
+        html += '<div class="tip-close">Tap anywhere to close</div>';
+      } else {
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'span' || tag === 'h2') {
+          html += '<div class="tip-meta">Hover for detail · v2.4 engine</div>';
+        }
+      }
+      return html;
+    }
+
+    function positionFollow(e) {
+      if (!activeEl) return;
+      const pad = 16;
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      let x = e.clientX + pad;
+      let y = e.clientY + pad;
+      if (x + w + 8 > window.innerWidth) x = e.clientX - w - pad;
+      if (y + h + 8 > window.innerHeight) y = e.clientY - h - pad;
+      if (x < 8) x = 8;
+      if (y < 8) y = 8;
+      tip.style.left = x + 'px';
+      tip.style.top = y + 'px';
+    }
+
+    function hide() {
+      tip.classList.remove('show', 'sheet');
+      activeEl = null;
+    }
+
+    if (isTouch) {
+      // ─── Mobile: tap to open as a bottom-sheet, tap anywhere else to close ───
+      document.querySelectorAll('[data-tip]').forEach(el => {
+        el.addEventListener('click', (e) => {
+          const html = buildHtml(el);
+          if (!html) return;
+          e.stopPropagation();
+          // Toggle off if same element tapped again
+          if (activeEl === el) { hide(); return; }
+          activeEl = el;
+          tip.innerHTML = html;
+          tip.classList.add('show', 'sheet');
+        });
+      });
+      document.addEventListener('click', hide);
+      tip.addEventListener('click', (e) => {
+        // Click inside the tip closes it too (e.g. the "Tap to close" footer)
+        hide();
+      });
+    } else {
+      // ─── Desktop: hover-follow as before ───
+      document.querySelectorAll('[data-tip]').forEach(el => {
+        el.addEventListener('mouseenter', (e) => {
+          const html = buildHtml(el);
+          if (!html) return;
+          activeEl = el;
+          tip.innerHTML = html;
+          tip.classList.add('show');
+          positionFollow(e);
+        });
+        el.addEventListener('mousemove', positionFollow);
+        el.addEventListener('mouseleave', hide);
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>
